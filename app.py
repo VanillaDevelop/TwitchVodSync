@@ -1,7 +1,6 @@
-import random
-import string
 import urllib
 import uuid
+import pkce
 from hashlib import sha256
 
 from flask import Flask, render_template, redirect, url_for
@@ -18,9 +17,10 @@ app = Flask(__name__)
 def hello_world():  # put application's code here
     return render_template('index.html')
 
+
 @app.route('/auth/challenge')
 def auth():
-    verifier = ''.join(random.choices(string.ascii_letters + string.digits + '-_.~', k=128))
+    verifier, challenge = pkce.generate_pkce_pair()
     challenge = sha256(verifier.encode('utf-8')).hexdigest()
     state = uuid.uuid4()
 
@@ -31,7 +31,8 @@ def auth():
     url += f"""&state={state}"""
     url += f"""&redirect_uri={urllib.parse.quote(host_url + url_for("auth_verify"))}"""
     url += f"""&response_type=code"""
-    return redirect(url, 307)
+    return redirect(url)
+
 
 @app.route('/auth/verify')
 def auth_verify():
