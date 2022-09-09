@@ -125,3 +125,6 @@ dmypy.json
 
 # IDEA
 .idea/
+
+# Flask Session
+flask_session/
