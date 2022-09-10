@@ -1,3 +1,4 @@
 Flask~=2.2.2
 python-dotenv~=0.21.0
 pkce~=1.0.3
+requests~=2.28.1

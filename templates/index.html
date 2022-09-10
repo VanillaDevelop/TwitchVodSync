@@ -19,9 +19,16 @@
 
 <body>
     <h1>Test</h1>
-        Sign-in with FFLogs
-    <form action="/auth/challenge">
-        <button class="btn btn-primary">Sign-in</button>
-    </form>
+        {% if username %}
+            Signed in as {{ username }}
+            <form action="/auth/signout" method="POST">
+                <button class="btn btn-primary">Sign-Out</button>
+            </form>
+        {% else %}
+            Sign-in with FFLogs
+            <form action="/auth/challenge" method="POST">
+                <button class="btn btn-primary">Sign-in</button>
+            </form>
+        {% endif %}
 </body>
 </html>

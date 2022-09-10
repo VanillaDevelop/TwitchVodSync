@@ -6,6 +6,7 @@ from flask import Flask, render_template, redirect, url_for, session, request
 from dotenv import load_dotenv
 import os
 
+from FFLogs.API import get_username
 from flask_session import Session
 
 host_url = "http://localhost:5000"
@@ -17,12 +18,15 @@ SESSION_TYPE = 'filesystem'
 app.config.from_object(__name__)
 Session(app)
 
+
 @app.route('/')
 def home():  # put application's code here
+    if "username" in session:
+        return render_template('index.html', username=session["username"])
     return render_template('index.html')
 
 
-@app.route('/auth/challenge')
+@app.route('/auth/challenge', methods=['POST'])
 def auth():
     verifier, challenge = pkce.generate_pkce_pair()
     state = str(uuid.uuid4())
@@ -51,7 +55,16 @@ def auth_verify():
         })
         if r.status_code == 200:
             session['token'] = r.json()['access_token']
+            session['username'] = get_username(session['token'])
 
+    return redirect(url_for('home'))
+
+
+@app.route('/auth/signout', methods=['POST'])
+def auth_signout():
+    if session['username'] and request.method == "POST":
+        del session['username']
+        del session['token']
     return redirect(url_for('home'))
 
 
