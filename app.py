@@ -6,7 +6,7 @@ from flask import Flask, render_template, redirect, url_for, session, request
 from dotenv import load_dotenv
 import os
 
-from FFLogs.API import get_username
+from FFLogs.API import get_username, get_fights_by_user
 from flask_session import Session
 
 host_url = "http://localhost:5000"
@@ -22,7 +22,10 @@ Session(app)
 @app.route('/')
 def home():  # put application's code here
     if "username" in session:
-        return render_template('index.html', username=session["username"])
+        if "recent_reports" not in session:
+            session["recent_reports"] = get_fights_by_user(session["token"], session["uid"])
+
+        return render_template('index.html', username=session["username"], reports=session["recent_reports"])
     return render_template('index.html')
 
 
@@ -55,7 +58,9 @@ def auth_verify():
         })
         if r.status_code == 200:
             session['token'] = r.json()['access_token']
-            session['username'] = get_username(session['token'])
+            userdata = get_username(session['token'])
+            session['username'] = userdata['name']
+            session['uid'] = userdata['id']
 
     return redirect(url_for('home'))
 
