@@ -6,7 +6,7 @@ from flask import Flask, render_template, redirect, url_for, session, request
 from dotenv import load_dotenv
 import os
 
-from FFLogs.API import get_username, get_fights_by_user
+from FFLogs.API import get_username, get_fights_by_user, get_fights_by_report, get_encounter_dict
 from flask_session import Session
 
 host_url = "http://localhost:5000"
@@ -44,6 +44,22 @@ def auth():
     url += f"""&redirect_uri={host_url + url_for("auth_verify")}"""
     url += f"""&response_type=code"""
     return redirect(url)
+
+
+@app.route('/report/', methods=['GET'])
+def report():
+    if not session["token"]:
+        return redirect(url_for("home"))
+
+    if not request.args.get("code"):
+        return redirect(url_for("home"))
+
+    fights = get_fights_by_report(session["token"], request.args.get("code"))
+    if not fights:
+        return redirect(url_for("home"))
+
+    return render_template('report.html', fights=fights, encounternames=get_encounter_dict(session["token"], fights))
+
 
 
 @app.route('/auth/verify')

@@ -1,5 +1,7 @@
 import requests
 
+encounters = dict()
+
 
 def get_username(token):
     query = """
@@ -28,7 +30,7 @@ def get_fights_by_user(token, uid):
         {
             reportData
             {
-                reports(userID:"""+str(uid)+""",page:1)
+                reports(userID:""" + str(uid) + """,page:1)
                 {
                     data
                     {
@@ -44,6 +46,62 @@ def get_fights_by_user(token, uid):
     r = __call_client_endpoint(query, token)
     if r:
         return r.json()['data']['reportData']['reports']['data']
+    else:
+        return None
+
+def get_fights_by_report(token, code):
+    query = """
+    query
+    {
+        reportData
+        {
+            report(code: \"""" + str(code) + """\")
+            {
+                fights
+                {
+                    id
+                    startTime,
+                    endTime,
+                    encounterID,
+                },
+            }
+        }
+    }"""
+    r = __call_client_endpoint(query, token)
+    if r:
+        return r.json()['data']['reportData']['report']['fights']
+    else:
+        return None
+
+
+def get_encounter_dict(token, fights):
+    for fight in fights:
+        eid = fight["encounterID"]
+        if eid not in encounters and eid != 0:
+            name = __query_for_encounter_name(token, eid)
+            if not name:
+                return None
+            else:
+                encounters[eid] = name
+    return encounters
+
+
+def __query_for_encounter_name(token, eid):
+    query = """
+    query
+    {
+        worldData
+        {
+            encounter(id:""" + str(eid) + """)
+            {
+                name
+            }
+        }
+    }
+    """
+    r = __call_client_endpoint(query, token)
+    if r:
+        return r.json()['data']['worldData']['encounter']['name']
     else:
         return None
 

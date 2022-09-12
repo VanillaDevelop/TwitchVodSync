@@ -1,0 +1,11 @@
+{% extends "template.html" %}
+
+{% block body %}
+    {% for fight in fights %}
+        {% if fight["encounterID"] != 0 %}
+        <div>
+            Pull from {{fight["startTime"]}} to {{fight["endTime"]}} ({{encounternames[fight["encounterID"]]}})
+        </div>
+        {% endif %}
+    {% endfor %}
+{% endblock %}
