@@ -1,10 +1,11 @@
 {% extends "template.html" %}
 
 {% block body %}
+    <div><h3>This report was created from {{ start_time }} to {{ end_time }}</h3></div>
     {% for fight in fights %}
         {% if fight["encounterID"] != 0 %}
         <div>
-            Pull from {{fight["startTime"]}} to {{fight["endTime"]}} ({{encounternames[fight["encounterID"]]}})
+            Pull from {{fight["timestampStart"]}} to {{fight["timestampEnd"]}} ({{encounternames[fight["encounterID"]]}})
         </div>
         {% endif %}
     {% endfor %}

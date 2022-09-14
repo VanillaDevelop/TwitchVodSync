@@ -49,7 +49,8 @@ def get_fights_by_user(token, uid):
     else:
         return None
 
-def get_fights_by_report(token, code):
+
+def get_report_data(token, code):
     query = """
     query
     {
@@ -57,6 +58,8 @@ def get_fights_by_report(token, code):
         {
             report(code: \"""" + str(code) + """\")
             {
+                startTime,
+                endTime,
                 fights
                 {
                     id
@@ -69,7 +72,38 @@ def get_fights_by_report(token, code):
     }"""
     r = __call_client_endpoint(query, token)
     if r:
-        return r.json()['data']['reportData']['report']['fights']
+        return r.json()['data']['reportData']['report']
+    else:
+        return None
+
+
+def get_player_dict_by_report(token, code):
+    query = """
+    query
+    {
+        reportData
+        {
+            report(code: \"""" + str(code) + """\")
+            {
+                masterData
+                {
+                    actors(type: "Player")
+                    {
+                        id,
+                        name,
+                        server
+                    }
+                }
+            }
+        }
+    }
+    """
+    r = __call_client_endpoint(query, token)
+    if r:
+        player_dict = dict()
+        for player in r.json()['data']['reportData']['report']['masterData']['actors']:
+            player_dict[player['id']] = player['name']
+        return player_dict
     else:
         return None
 

@@ -6,7 +6,8 @@ from flask import Flask, render_template, redirect, url_for, session, request
 from dotenv import load_dotenv
 import os
 
-from FFLogs.API import get_username, get_fights_by_user, get_fights_by_report, get_encounter_dict
+from FFLogs.API import get_username, get_fights_by_user, get_encounter_dict, get_report_data
+from FFLogs.DateUtil import append_timestamps, timestamp_to_string
 from flask_session import Session
 
 host_url = "http://localhost:5000"
@@ -54,12 +55,15 @@ def report():
     if not request.args.get("code"):
         return redirect(url_for("home"))
 
-    fights = get_fights_by_report(session["token"], request.args.get("code"))
-    if not fights:
+    data = get_report_data(session["token"], request.args.get("code"))
+    if not data:
         return redirect(url_for("home"))
 
-    return render_template('report.html', fights=fights, encounternames=get_encounter_dict(session["token"], fights))
-
+    append_timestamps(data['startTime'], data['fights'])
+    return render_template('report.html', fights=data['fights'],
+                           encounternames=get_encounter_dict(session["token"], data['fights']),
+                           start_time=timestamp_to_string(data['startTime']),
+                           end_time=timestamp_to_string(data['endTime']))
 
 
 @app.route('/auth/verify')
