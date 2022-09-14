@@ -63,7 +63,9 @@ def report():
     return render_template('report.html', fights=data['fights'],
                            encounternames=get_encounter_dict(session["token"], data['fights']),
                            start_time=timestamp_to_string(data['startTime']),
-                           end_time=timestamp_to_string(data['endTime']))
+                           end_time=timestamp_to_string(data['endTime']),
+                           code=request.args.get("code"),
+                           twitch_token=session["twitch_token"] if "twitch_token" in session else None)
 
 
 @app.route('/auth/verify')
@@ -91,6 +93,41 @@ def auth_signout():
         del session['username']
         del session['token']
     return redirect(url_for('home'))
+
+
+@app.route('/auth/twitch_challenge', methods=['POST'])
+def auth_twitch():
+    state = str(uuid.uuid4())
+    session['state_twitch'] = state
+    session['redirect_to_log'] = request.form.get("code")
+
+    url = f"""https://id.twitch.tv/oauth2/authorize?"""
+    url += f"""client_id={os.getenv("TWITCH_ID")}"""
+    url += f"""&response_type=code"""
+    url += f"""&state={state}"""
+    url += f"""&scope="""
+    url += f"""&redirect_uri={host_url + url_for("auth_twitch_verify")}"""
+    return redirect(url)
+
+
+@app.route('/auth/twitch')
+def auth_twitch_verify():
+    if session['state_twitch'] == request.args.get('state'):
+        r = requests.post("https://id.twitch.tv/oauth2/token", data={
+            "client_id": os.getenv("TWITCH_ID"),
+            "client_secret": os.getenv("TWITCH_SECRET"),
+            "code": request.args.get('code'),
+            "redirect_uri": host_url + url_for("auth_twitch_verify"),
+            "grant_type": "authorization_code",
+        })
+        if r.status_code == 200:
+            session['twitch_token'] = r.json()['access_token']
+            session['twitch_refresh_token'] = r.json()['refresh_token']
+
+        log = session['redirect_to_log']
+        del session['redirect_to_log']
+        return redirect(host_url + url_for("report") + "?code=" + log)
+    return redirect(host_url)
 
 
 if __name__ == '__main__':
