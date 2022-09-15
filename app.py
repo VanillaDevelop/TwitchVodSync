@@ -64,6 +64,7 @@ def report():
                            encounternames=get_encounter_dict(session["token"], data['fights']),
                            start_time=timestamp_to_string(data['startTime']),
                            end_time=timestamp_to_string(data['endTime']),
+                           start_epoch=data['startTime'],
                            code=request.args.get("code"),
                            twitch_token=session["twitch_token"] if "twitch_token" in session else None)
 

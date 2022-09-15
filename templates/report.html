@@ -23,7 +23,12 @@
     {% for fight in fights %}
         {% if fight["encounterID"] != 0 %}
         <div>
-            Pull from {{fight["timestampStart"]}} to {{fight["timestampEnd"]}} ({{encounternames[fight["encounterID"]]}})
+            <strong>Pull from {{fight["timestampStart"]}} to {{fight["timestampEnd"]}}
+                ({{encounternames[fight["encounterID"]]}})</strong>
+            <form onsubmit="submitWipe(event)">
+                <input hidden type="text" name="wipe" value="{{fight["endTime"]}}">
+                <button class="btn btn-primary">Show Wipe</button>
+            </form>
         </div>
         {% endif %}
     {% endfor %}
@@ -34,6 +39,8 @@
     <script>
     videolist = {}
     videonames = {}
+
+    const start_epoch = parseFloat({{ start_epoch }})
 
     function submitVod(event)
     {
@@ -48,7 +55,7 @@
             contentType: "application/json; charset=utf-8",
             success: function (msg) {
                 let d = new Date(msg['created_at']);
-                videolist[msg['id']] = d.getTime()/1000;
+                videolist[msg['id']] = d.getTime();
                 videonames[msg['id']] = msg['title'];
 
                 let newNode = document.createElement('div')
@@ -64,6 +71,15 @@
                 player.setVolume(0.5);
             }
          });
+    }
+
+    function submitWipe(event)
+    {
+        event.preventDefault();
+        let formData = new FormData(event.target);
+        let timestamp = parseFloat(formData.get('wipe'))
+        let pullWipe = start_epoch + timestamp - 10000;
+        console.log(start_epoch + " " + timestamp + " " + pullWipe)
     }
     </script>
 {% endblock %}
