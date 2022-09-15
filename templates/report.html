@@ -39,6 +39,7 @@
     <script>
     videolist = {}
     videonames = {}
+    videoplayers = {}
 
     const start_epoch = parseFloat({{ start_epoch }})
 
@@ -69,6 +70,7 @@
                 };
                 var player = new Twitch.Player("stream" + msg['id'], options);
                 player.setVolume(0.5);
+                videoplayers[msg['id']] = player
             }
          });
     }
@@ -79,7 +81,11 @@
         let formData = new FormData(event.target);
         let timestamp = parseFloat(formData.get('wipe'))
         let pullWipe = start_epoch + timestamp - 10000;
-        console.log(start_epoch + " " + timestamp + " " + pullWipe)
+
+        Object.keys(videolist).forEach(id =>
+        {
+            videoplayers[id].seek((pullWipe - videolist[id])/1000)
+        });
     }
     </script>
 {% endblock %}
