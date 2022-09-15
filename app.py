@@ -47,7 +47,7 @@ def auth():
     return redirect(url)
 
 
-@app.route('/report/', methods=['GET'])
+@app.route('/report/')
 def report():
     if not session["token"]:
         return redirect(url_for("home"))
@@ -128,6 +128,57 @@ def auth_twitch_verify():
         del session['redirect_to_log']
         return redirect(host_url + url_for("report") + "?code=" + log)
     return redirect(host_url)
+
+
+@app.route('/ajax/twitch/vod', methods=['GET'])
+def ajax_vod_info():
+    if not session['twitch_token']:
+        return "Not authenticated with Twitch", 400
+
+    video_id = request.args.get("id")
+    if not video_id:
+        return "No video ID provided", 400
+
+    else:
+        r = requests.get(f"https://api.twitch.tv/helix/videos?id={video_id}",
+                         headers={"Authorization": f"Bearer {session['twitch_token']}",
+                                  "Client-Id": os.getenv("TWITCH_ID")})
+        if r.status_code == 200:
+            if len(r.json()['data']) == 0:
+                return "Video not found", 400
+
+            return {
+                "id": video_id,
+                "title": r.json()['data'][0]['title'],
+                "created_at": r.json()['data'][0]['created_at']
+            }
+        else:
+            if r.status_code == 401:
+                # try to refresh the token
+                r = requests.post("https://id.twitch.tv/oauth2/token", data={
+                    "client_id": os.getenv("TWITCH_ID"),
+                    "client_secret": os.getenv("TWITCH_SECRET"),
+                    "refresh_token": session['twitch_refresh_token'],
+                    "grant_type": "refresh_token",
+                })
+                if r.status_code == 200:
+                    session['twitch_token'] = r.json()['access_token']
+                    session['twitch_refresh_token'] = r.json()['refresh_token']
+                    r = requests.get(f"https://api.twitch.tv/helix/videos?id={video_id}",
+                                     headers={"Authorization": f"Bearer {session['twitch_token']}",
+                                              "Client-Id": os.getenv("TWITCH_ID")})
+                    if r.status_code == 200:
+                        if len(r.json()['data']) == 0:
+                            return "Video not found", 400
+
+                        return {
+                            "id": video_id,
+                            "title": r.json()['data'][0]['title'],
+                            "created_at": r.json()['data'][0]['created_at']
+                        }
+
+            del session['twitch_token']
+            return f"Twitch API returned {r.status_code}. Please reauthorize user.", 400
 
 
 if __name__ == '__main__':

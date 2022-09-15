@@ -3,6 +3,14 @@
 {% block body %}
     <h3>Stream View</h3>
     {% if twitch_token %}
+        <div id="streams">
+
+        </div>
+        <h5>Add a Twitch VOD</h5>
+        <form onsubmit="submitVod(event)" id=twitchvod_form">
+            <input type="text" name="twitch_vod" placeholder="Video ID"/>
+            <button class="btn btn-primary">Add Twitch VOD</button>
+        </form>
     {% else %}
         To add a stream view, you need to authorize with Twitch.
         Sign-in with Twitch
@@ -19,4 +27,28 @@
         </div>
         {% endif %}
     {% endfor %}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+    videolist = {}
+    videonames = {}
+
+    function submitVod(event)
+    {
+        event.preventDefault();
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: 'json',
+            url: "/ajax/twitch/vod?id=0",
+            contentType: "application/json; charset=utf-8",
+            success: function (msg) {
+                let d = new Date(msg['created_at'])
+                videolist[msg['id']] = d.getTime()/1000
+                videonames[msg['id']] = msg['title']
+            }
+         });
+    }
+    </script>
 {% endblock %}
