@@ -177,8 +177,7 @@ def ajax_vod_info():
                             "created_at": r.json()['data'][0]['created_at']
                         }
 
-            del session['twitch_token']
-            return f"Twitch API returned {r.status_code}. Please reauthorize user.", 400
+            return f"Twitch API returned {r.status_code}.", 400
 
 
 if __name__ == '__main__':
