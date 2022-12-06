@@ -3,20 +3,22 @@ import pkce
 import requests
 
 from flask import Flask, render_template, redirect, url_for, session, request
+from flask_session import Session
 from dotenv import load_dotenv
+from DocStore import MongoDB
 import os
 
 import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
-from flask_session import Session
 
 host_url = "http://localhost:5000"
 
 load_dotenv()
 app = Flask(__name__)
 
-SESSION_TYPE = 'filesystem'
-app.config.from_object(__name__)
+app.config["SESSION_TYPE"] = 'mongodb'
+app.config["SESSION_MONGODB"] = MongoDB.client
+app.config["SESSION_MONGODB_DB"] = 'VodSync'
 Session(app)
 
 
