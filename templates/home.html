@@ -1,36 +1,27 @@
 {% extends "template.html" %}
 
 {% block body %}
-    <h1>Twitch VOD Sync</h1>
-        {% if username %}
-            Signed in as {{ username }}
-            <h3>Enter report ID here</h3>
+<h1>Twitch VOD Sync</h1>
+Signed in as {{ username }}
+<h3>Enter report ID here</h3>
+<form action="/report/" method="GET">
+    <input type="text" name="code" />
+    <button class="btn btn-primary">Open Report</button>
+</form>
+{%  if reports %}
+    <h1>OR</h1>
+    <h3>Pick from your recent reports</h3>
+    {% for report in reports %}
+        <div>
+            {{ report['title'] }}
             <form action="/report/" method="GET">
-                <input type="text" name="code" />
-                <button class="btn btn-primary">Open Report</button>
+                <input hidden type="text" name="code" value="{{ report['code'] }}" />
+                <button class="btn btn-primary">Open this report</button>
             </form>
-            {%  if reports %}
-                <h1>OR</h1>
-                <h3>Pick from your recent reports</h3>
-                {% for report in reports %}
-                    <div>
-                        {{ report['title'] }}
-                        <form action="/report/" method="GET">
-                            <input hidden type="text" name="code" value="{{ report['code'] }}" />
-                            <button class="btn btn-primary">Open this report</button>
-                        </form>
-                    </div>
-                {% endfor %}
-            {% endif %}
-            <form action="/auth/signout" method="POST">
-                <button class="btn btn-primary">Sign-Out</button>
-            </form>
-
-
-        {% else %}
-            Sign-in with FFLogs
-            <form action="/auth/challenge" method="POST">
-                <button class="btn btn-primary">Sign-in</button>
-            </form>
-        {% endif %}
+        </div>
+    {% endfor %}
+{% endif %}
+<form action="/auth/fflogs/signout" method="POST">
+    <button class="btn btn-primary">Sign-Out</button>
+</form>
 {% endblock %}

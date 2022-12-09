@@ -1,15 +1,14 @@
+import os
 import uuid
-import pkce
-import requests
 
+import requests
+from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
 from flask_session import Session
-from dotenv import load_dotenv
-from DocStore import MongoDB
-import os
 
 import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
+from DocStore import MongoDB
 from views.fflogs import fflogs_routes
 
 load_dotenv()
@@ -29,17 +28,19 @@ def index():
     if "fflogs_username" in session:
         return redirect(host_url + url_for("home"))
     else:
-        return render_template('index.html')
+        return render_template('index.html', host_url=host_url, google_client_id=os.getenv("GOOGLE_CLIENT_ID"))
 
 
 @app.route('/home')
 def home():
-    if "fflogs_username" in session:
-        if "recent_reports" not in session:
-            session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
+    if "fflogs_username" not in session:
+        return redirect(url_for("index"))
 
-        return render_template('home.html', username=session["fflogs_username"], reports=session["recent_reports"])
-    return render_template('home.html')
+    if "recent_reports" not in session:
+        session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
+
+    return render_template('home.html', username=session["fflogs_username"], reports=session["recent_reports"])
+
 
 @app.route('/report/')
 def report():
@@ -67,6 +68,7 @@ def report():
                            code=request.args.get("code"),
                            twitch_token=session["twitch_token"] if "twitch_token" in session else None)
 
+
 @app.route('/auth/twitch_challenge', methods=['POST'])
 def auth_twitch():
     # when button to start twitch out flow is clicked
@@ -76,11 +78,11 @@ def auth_twitch():
     session['redirect_to_log'] = request.form.get("code")
 
     # call twitch auth url with state
-    url = f"""https://id.twitch.tv/oauth2/authorize?"""\
-          f"""client_id={os.getenv("TWITCH_ID")}"""\
-          f"""&response_type=code"""\
-          f"""&state={state}"""\
-          f"""&scope="""\
+    url = f"""https://id.twitch.tv/oauth2/authorize?""" \
+          f"""client_id={os.getenv("TWITCH_ID")}""" \
+          f"""&response_type=code""" \
+          f"""&state={state}""" \
+          f"""&scope=""" \
           f"""&redirect_uri={host_url + url_for("auth_twitch_verify")}"""
     return redirect(url)
 
