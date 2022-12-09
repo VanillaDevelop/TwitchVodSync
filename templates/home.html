@@ -1,10 +1,8 @@
 {% extends "template.html" %}
 
 {% block body %}
-    <div class="container">
-        <h1 class="text-center">FFLogs VOD Sync</h1>
-    </div>
-    {% if username %}
+    <h1>Twitch VOD Sync</h1>
+        {% if username %}
             Signed in as {{ username }}
             <h3>Enter report ID here</h3>
             <form action="/report/" method="GET">
@@ -24,14 +22,14 @@
                     </div>
                 {% endfor %}
             {% endif %}
-            <form action="/auth/fflogs/signout" method="POST">
+            <form action="/auth/signout" method="POST">
                 <button class="btn btn-primary">Sign-Out</button>
             </form>
 
 
         {% else %}
             Sign-in with FFLogs
-            <form action="/auth/fflogs/challenge" method="POST">
+            <form action="/auth/challenge" method="POST">
                 <button class="btn btn-primary">Sign-in</button>
             </form>
         {% endif %}

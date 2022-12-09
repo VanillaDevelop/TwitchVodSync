@@ -10,48 +10,36 @@ import os
 
 import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
-
-host_url = "http://localhost:5000"
+from views.fflogs import fflogs_routes
 
 load_dotenv()
 app = Flask(__name__)
+host_url = os.getenv("HOST_URL")
 
 app.config["SESSION_TYPE"] = 'mongodb'
 app.config["SESSION_MONGODB"] = MongoDB.client
 app.config["SESSION_MONGODB_DB"] = 'VodSync'
 Session(app)
 
+app.register_blueprint(fflogs_routes)
+
 
 @app.route('/')
+def index():
+    if "fflogs_username" in session:
+        return redirect(host_url + url_for("home"))
+    else:
+        return render_template('index.html')
+
+
+@app.route('/home')
 def home():
-    if "username" in session:
+    if "fflogs_username" in session:
         if "recent_reports" not in session:
-            session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["token"], session["uid"])
+            session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
 
-        return render_template('index.html', username=session["username"], reports=session["recent_reports"])
-    return render_template('index.html')
-
-
-@app.route('/auth/challenge', methods=['POST'])
-def auth():
-    # when button is pressed to start FFLogs auth
-    # generate PKCE pair
-    verifier, challenge = pkce.generate_pkce_pair()
-    state = str(uuid.uuid4())
-    # store state and verifier in session
-    session['state'] = state
-    session['verifier'] = verifier
-
-    # redirect user to FFLogs auth page with challenge
-    url = f"""https://www.fflogs.com/oauth/authorize?"""\
-          f"""client_id={os.getenv("FFLOGS_ID")}"""\
-          f"""&code_challenge={challenge}"""\
-          f"""&code_challenge_method=S256"""\
-          f"""&state={state}"""\
-          f"""&redirect_uri={host_url + url_for("auth_verify")}"""\
-          f"""&response_type=code"""
-    return redirect(url)
-
+        return render_template('home.html', username=session["fflogs_username"], reports=session["recent_reports"])
+    return render_template('home.html')
 
 @app.route('/report/')
 def report():
@@ -78,43 +66,6 @@ def report():
                            start_epoch=data['startTime'],
                            code=request.args.get("code"),
                            twitch_token=session["twitch_token"] if "twitch_token" in session else None)
-
-
-@app.route('/auth/verify')
-def auth_verify():
-    # when redirected from FFLogs
-    # compare state, request token with verifier and auth code provided
-    if session['state'] == request.args.get('state'):
-        r = requests.post("https://www.fflogs.com/oauth/token", data={
-            "client_id": os.getenv("FFLOGS_ID"),
-            "code_verifier": session['verifier'],
-            "redirect_uri": host_url + url_for("auth_verify"),
-            "grant_type": "authorization_code",
-            "code": request.args.get('code')
-        })
-
-        # if successful, store access token for user and get his username and uid, then return to home
-        if r.status_code == 200:
-            session['token'] = r.json()['access_token']
-            userdata = FFLogsAPI.get_username(session['token'])
-            session['username'] = userdata['name']
-            session['uid'] = userdata['id']
-
-        del session['state']
-        del session['verifier']
-
-    return redirect(url_for('home'))
-
-
-@app.route('/auth/signout', methods=['POST'])
-def auth_signout():
-    # signout from FFLogs session => delete the data stored by the FFLogs auth flow, then return home
-    if session['username'] and request.method == "POST":
-        del session['username']
-        del session['token']
-        del session['uid']
-    return redirect(url_for('home'))
-
 
 @app.route('/auth/twitch_challenge', methods=['POST'])
 def auth_twitch():
