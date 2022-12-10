@@ -4,7 +4,10 @@ import uuid
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
+from flask_cors import cross_origin
 from flask_session import Session
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_auth_request
 
 import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
@@ -14,32 +17,48 @@ from views.fflogs import fflogs_routes
 load_dotenv()
 app = Flask(__name__)
 host_url = os.getenv("HOST_URL")
+google_id = os.getenv("GOOGLE_CLIENT_ID")
 
-app.config["SESSION_TYPE"] = 'mongodb'
+app.config["SESSION_TYPE"] = "mongodb"
 app.config["SESSION_MONGODB"] = MongoDB.client
-app.config["SESSION_MONGODB_DB"] = 'VodSync'
+app.config["SESSION_MONGODB_DB"] = "VodSync"
 Session(app)
 
 app.register_blueprint(fflogs_routes)
 
 
 @app.route('/')
+@cross_origin(supports_credentials=True, origins="*")
 def index():
     if "fflogs_username" in session:
         return redirect(host_url + url_for("home"))
     else:
-        return render_template('index.html', host_url=host_url, google_client_id=os.getenv("GOOGLE_CLIENT_ID"))
+        return render_template('index.html', host_url=host_url + url_for("login"),
+                               google_client_id=google_id)
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    # try to get the user's email to authorize them
+    try:
+        id_info = id_token.verify_oauth2_token(request.form["credential"], google_auth_request.Request(), google_id)
+        if "email" in id_info:
+            session["user"] = id_info["email"]
+            return redirect(host_url + url_for("home"))
+        return redirect(host_url + url_for("index"))
+    except ValueError:
+        return redirect(host_url + url_for("index"))
 
 
 @app.route('/home')
 def home():
-    if "fflogs_username" not in session:
+    if "user" not in session:
         return redirect(url_for("index"))
 
     if "recent_reports" not in session:
         session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
 
-    return render_template('home.html', username=session["fflogs_username"], reports=session["recent_reports"])
+    return render_template('home.html', username=session["user"], reports=session["recent_reports"])
 
 
 @app.route('/report/')
