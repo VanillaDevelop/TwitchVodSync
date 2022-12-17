@@ -30,7 +30,7 @@ app.register_blueprint(fflogs_routes)
 @app.route('/')
 @cross_origin(supports_credentials=True, origins="*")
 def index():
-    if "fflogs_username" in session:
+    if "user" in session:
         return redirect(host_url + url_for("home"))
     else:
         return render_template('index.html', host_url=host_url + url_for("login"),
@@ -44,10 +44,19 @@ def login():
         id_info = id_token.verify_oauth2_token(request.form["credential"], google_auth_request.Request(), google_id)
         if "email" in id_info:
             session["user"] = id_info["email"]
+
             return redirect(host_url + url_for("home"))
         return redirect(host_url + url_for("index"))
     except ValueError:
         return redirect(host_url + url_for("index"))
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    # delete login cookie
+    if "user" in session and request.method == "POST":
+        session.clear()
+    return redirect(url_for('index'))
 
 
 @app.route('/home')
@@ -55,10 +64,13 @@ def home():
     if "user" not in session:
         return redirect(url_for("index"))
 
-    if "recent_reports" not in session:
-        session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
+    # if "recent_reports" not in session:
+    #    session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
 
-    return render_template('home.html', username=session["user"], reports=session["recent_reports"])
+    if "auths" not in session:
+        session["auths"] = MongoDB.get_auth_keys(session["user"])
+
+    return render_template('home.html', username=session["user"], auths=session["auths"])
 
 
 @app.route('/report/')

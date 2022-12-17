@@ -1,0 +1,27 @@
+{% extends "template.html" %}
+
+{% block body %}
+<h1>Twitch VOD Sync</h1>
+Signed in as {{ username }}
+<h3>Enter report ID here</h3>
+<form action="/report/" method="GET">
+    <input type="text" name="code" />
+    <button class="btn btn-primary">Open Report</button>
+</form>
+{%  if reports %}
+    <h1>OR</h1>
+    <h3>Pick from your recent reports</h3>
+    {% for report in reports %}
+        <div>
+            {{ report['title'] }}
+            <form action="/report/" method="GET">
+                <input hidden type="text" name="code" value="{{ report['code'] }}" />
+                <button class="btn btn-primary">Open this report</button>
+            </form>
+        </div>
+    {% endfor %}
+{% endif %}
+<form action="/logout" method="POST">
+    <button class="btn btn-primary">Logout</button>
+</form>
+{% endblock %}

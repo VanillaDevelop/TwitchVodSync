@@ -3,25 +3,17 @@
 {% block body %}
 <h1>Twitch VOD Sync</h1>
 Signed in as {{ username }}
-<h3>Enter report ID here</h3>
-<form action="/report/" method="GET">
-    <input type="text" name="code" />
-    <button class="btn btn-primary">Open Report</button>
+<form action="/logout" method="POST">
+    <button class="btn btn-primary">Logout</button>
 </form>
-{%  if reports %}
-    <h1>OR</h1>
-    <h3>Pick from your recent reports</h3>
-    {% for report in reports %}
-        <div>
-            {{ report['title'] }}
-            <form action="/report/" method="GET">
-                <input hidden type="text" name="code" value="{{ report['code'] }}" />
-                <button class="btn btn-primary">Open this report</button>
-            </form>
-        </div>
-    {% endfor %}
+
+{% if "fflogs" in auths %}
+    <div>Logged in FFLogs</div>
+{% else %}
+    <div>Not logged in FFLogs</div>
+    <form action="/auth/fflogs/challenge" method="POST">
+        <button class="btn btn-primary">Authorize with FFLogs</button>
+    </form>
 {% endif %}
-<form action="/auth/fflogs/signout" method="POST">
-    <button class="btn btn-primary">Sign-Out</button>
-</form>
+
 {% endblock %}

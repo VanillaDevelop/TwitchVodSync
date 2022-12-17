@@ -5,6 +5,7 @@ import requests
 from dotenv import load_dotenv
 from flask import redirect, url_for, session, request, Blueprint
 import FFLogs.API as FFLogsAPI
+from DocStore.MongoDB import store_auth_keys
 
 load_dotenv()
 fflogs_routes = Blueprint('fflogs', __name__)
@@ -46,10 +47,15 @@ def auth_verify():
 
         # if successful, store access token for user and get his username and uid, then return to home
         if r.status_code == 200:
-            session['fflogs_token'] = r.json()['access_token']
-            userdata = FFLogsAPI.get_username(session['fflogs_token'])
-            session['fflogs_username'] = userdata['name']
-            session['fflogs_uid'] = userdata['id']
+            userdata = FFLogsAPI.get_username(r.json()["access_token"])
+
+            session["auths"]["fflogs"] = {
+                "access_token": r.json()["access_token"],
+                "username": userdata["name"],
+                "uid": userdata["id"],
+                "refresh_token": r.json()["refresh_token"]
+            }
+            store_auth_keys(session["user"], session["auths"])
 
         del session['fflogs_state']
         del session['fflogs_verifier']
