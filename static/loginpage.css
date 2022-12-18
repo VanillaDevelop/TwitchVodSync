@@ -1,0 +1,19 @@
+#login-info
+{
+    max-width:300px;
+    min-height:300px;
+    padding: 20px;
+    border: 1px solid #DE8785;
+    background-color: #F7C1C0;
+    filter: drop-shadow(0px 0px 5px #632D2C);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+html,
+body,
+.center
+{
+    height: 100%;
+}

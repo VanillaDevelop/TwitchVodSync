@@ -44,7 +44,6 @@ def login():
         id_info = id_token.verify_oauth2_token(request.form["credential"], google_auth_request.Request(), google_id)
         if "email" in id_info:
             session["user"] = id_info["email"]
-
             return redirect(host_url + url_for("home"))
         return redirect(host_url + url_for("index"))
     except ValueError:

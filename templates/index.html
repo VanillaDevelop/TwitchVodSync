@@ -1,23 +1,74 @@
 {% extends "template.html" %}
 
+{% block head %}
+    <link rel="stylesheet" href="{{  url_for('static', filename='loginpage.css') }}">
+{% endblock %}
+
 {% block body %}
-    <div class="container">
-        <h1 class="text-center">FFLogs VOD Sync</h1>
+
+<!-- Info Modal -->
+<div class="modal fade" id="googleModal" tabindex="-1" aria-labelledby="googleModalLaunch" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="googleModalTitle">Google Sign-In Info</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+            <p>
+                <strong>Why do I need an account for this application?</strong><br />
+                FFLogs VOD Sync needs to authenticate you using a variety of services: FFLogs, Twitch, and YouTube. When you
+                do this, you provide FFLogs VOD Sync with certain authorization privileges (such as requesting information on
+                private logs or videos). To store these authorization tokens, we need to link them by authenticating you
+                (verifying your identity). This is what the Google Sign-In service provides.
+            </p>
+            <p>
+                <strong>Why a Google account?</strong><br />
+                Google Sign-In was used due to the simplicity of authenticating users. The advantage for you is that
+                you do not need to trust the application with any login data - you provide no password to us.
+            </p>
+            <p>
+                <strong>What information am I giving you?</strong><br />
+                You are only providing us with your public Google Mail address that you use to log into this service.
+                This e-mail acts as your de-facto username for this application, to store other information you provide.
+            </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
+      </div>
     </div>
-    Sign-in with Google
-          <div id="g_id_onload"
-         data-client_id="{{ google_client_id }}"
-         data-login_uri="{{ host_url }}"
-         data-auto_prompt="true">
-      </div>
-      <div class="g_id_signin"
-         data-type="standard"
-         data-size="large"
-         data-theme="outline"
-         data-text="sign_in_with"
-         data-shape="rectangular"
-         data-logo_alignment="left">
-      </div>
+  </div>
+</div>
+
+
+<div class="center">
+    <div id="login-info">
+        <div>
+            <h4 class="text-center">Login</h4>
+            <hr />
+            To use the FFLogs VOD Sync system, you need to sign in with a Google account.
+            <a id="googleModalLaunch" href="#" data-bs-toggle="modal" data-bs-target="#googleModal">
+              Learn more.
+            </a>
+        </div>
+        <div class="d-flex justify-content-end">
+            <div id="g_id_onload"
+            data-client_id="{{ google_client_id }}"
+            data-login_uri="{{ host_url }}"
+            data-auto_prompt="false">
+            </div>
+            <div class="g_id_signin"
+            data-type="standard"
+            data-size="large"
+            data-theme="outline"
+            data-text="sign_in_with"
+            data-shape="rectangular"
+            data-logo_alignment="left">
+            </div>
+        </div>
+    </div>
+</div>
+
 
 {% endblock %}
 

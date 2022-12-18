@@ -1,0 +1,16 @@
+a {
+    color: #7A3836;
+}
+
+body
+{
+    background-color: #F7C1C0;
+    color: #5D3938;
+}
+
+.center
+{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
