@@ -66,8 +66,7 @@ def auth_verify():
 @fflogs_routes.route('/auth/fflogs/signout', methods=['POST'])
 def auth_signout():
     # signout from FFLogs session => delete the data stored by the FFLogs auth flow, then return home
-    if session['fflogs_username'] and request.method == "POST":
-        del session['fflogs_username']
-        del session['fflogs_token']
-        del session['fflogs_uid']
+    if "user" in session and "fflogs" in session["auths"] and request.method == "POST":
+        del session["auths"]["fflogs"]
+        store_auth_keys(session["user"], session["auths"])
     return redirect(url_for('home'))

@@ -1,0 +1,23 @@
+.navbar
+{
+    background-color: #7A3836 !important;
+    color: white !important;
+}
+
+.navbar a
+{
+    color: white !important;
+}
+
+#logout-form-item
+{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 5px 5px;
+}
+
+.btn-link
+{
+    color: white !important;
+}

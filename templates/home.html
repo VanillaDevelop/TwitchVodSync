@@ -1,19 +1,51 @@
-{% extends "template.html" %}
+{% extends "templatemain.html" %}
 
-{% block body %}
-<h1>Twitch VOD Sync</h1>
-Signed in as {{ username }}
-<form action="/logout" method="POST">
-    <button class="btn btn-primary">Logout</button>
-</form>
+{% block head %}
+    <link rel="stylesheet" href="{{  url_for('static', filename='main.css') }}">
+{% endblock %}
 
-{% if "fflogs" in auths %}
-    <div>Logged in FFLogs</div>
-{% else %}
-    <div>Not logged in FFLogs</div>
-    <form action="/auth/fflogs/challenge" method="POST">
-        <button class="btn btn-primary">Authorize with FFLogs</button>
-    </form>
-{% endif %}
-
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center mb-4">My Authorizations</h1>
+    <div class="row">
+        <div class="card col-md-4">
+            <div class="card-body">
+            <h5 class="card-title">FFLogs Authorization</h5>
+            <hr />
+            <p class="card-text">Linking your FFLogs account is required to perform any operations on the FFLogs VOD
+            Sync tool. If you find this information surprising, you are probably not the kind of person who can
+            properly utilize this tool regardless.</p>
+            </div>
+            <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>What?</strong> Read logs, including your private logs. List logs,
+            including your private logs. Read events from reports, such as metadata, pulls, and pull length.</li>
+                <li class="list-group-item"><strong>Why?</strong> FFLogs VOD Sync needs this information to convert the
+                    start and end of your pulls into absolute timestamps to sync up with your VODs.
+            </li>
+                <li class="list-group-item"><strong>How?</strong> We follow the PKCE key exchange flow to acquire a
+                token authorizing us to FFLogs on your behalf.</li>
+            </ul>
+            <div class="card-body text-center">
+                <strong>Current Status: </strong>
+                {% if "fflogs" in auths %}
+                    <span>Logged in FFLogs as <strong>{{ auths["fflogs"]["username"] }}</strong></span>.
+                    <form class="mt-2 d-inline-block" action="/auth/fflogs/signout" method="POST">
+                        <button class="btn btn-primary">Unlink this account.</button>
+                    </form>
+                {% else %}
+                    <span>Not logged in</span>.
+                    <form class="mt-2 d-inline-block" action="/auth/fflogs/challenge" method="POST">
+                        <button class="btn btn-primary">Authorize with FFLogs</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="alert alert-danger">
+            <strong></strong>
+            An example danger alert with an icon
+        </div>
+    </div>
+</div>
 {% endblock %}

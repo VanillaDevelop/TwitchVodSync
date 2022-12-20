@@ -14,3 +14,13 @@ body
     align-items: center;
     justify-content: center;
 }
+
+.btn-link {
+  background: none!important;
+  border: none;
+  /*optional*/
+  font-family: arial, sans-serif;
+  /*input has OS specific font-family*/
+  text-decoration: none;
+  cursor: pointer;
+}
