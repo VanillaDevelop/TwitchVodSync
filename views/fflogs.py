@@ -34,6 +34,9 @@ def auth_challenge():
 
 @fflogs_routes.route('/auth/fflogs/verify')
 def auth_verify():
+    if "user" not in session:
+        return redirect(host_url + url_for("index"))
+
     # compare state
     if session['fflogs_state'] == request.args.get('state'):
         # request token with verifier and provided auth code

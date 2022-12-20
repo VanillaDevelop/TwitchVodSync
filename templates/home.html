@@ -7,44 +7,80 @@
 {% block content %}
 <div class="container mt-5">
     <h1 class="text-center mb-4">My Authorizations</h1>
-    <div class="row">
-        <div class="card col-md-4">
-            <div class="card-body">
-            <h5 class="card-title">FFLogs Authorization</h5>
-            <hr />
-            <p class="card-text">Linking your FFLogs account is required to perform any operations on the FFLogs VOD
-            Sync tool. If you find this information surprising, you are probably not the kind of person who can
-            properly utilize this tool regardless.</p>
-            </div>
-            <ul class="list-group list-group-flush">
-            <li class="list-group-item"><strong>What?</strong> Read logs, including your private logs. List logs,
-            including your private logs. Read events from reports, such as metadata, pulls, and pull length.</li>
-                <li class="list-group-item"><strong>Why?</strong> FFLogs VOD Sync needs this information to convert the
-                    start and end of your pulls into absolute timestamps to sync up with your VODs.
-            </li>
-                <li class="list-group-item"><strong>How?</strong> We follow the PKCE key exchange flow to acquire a
-                token authorizing us to FFLogs on your behalf.</li>
-            </ul>
-            <div class="card-body text-center">
-                <strong>Current Status: </strong>
-                {% if "fflogs" in auths %}
-                    <span>Logged in FFLogs as <strong>{{ auths["fflogs"]["username"] }}</strong></span>.
-                    <form class="mt-2 d-inline-block" action="/auth/fflogs/signout" method="POST">
-                        <button class="btn btn-primary">Unlink this account.</button>
-                    </form>
-                {% else %}
-                    <span>Not logged in</span>.
-                    <form class="mt-2 d-inline-block" action="/auth/fflogs/challenge" method="POST">
-                        <button class="btn btn-primary">Authorize with FFLogs</button>
-                    </form>
-                {% endif %}
-            </div>
-        </div>
-    </div>
     <div class="row mt-4">
         <div class="alert alert-danger">
-            <strong></strong>
-            An example danger alert with an icon
+            <strong>Don't break it.</strong>
+            <p>We follow each API's authorization flow to the best of our ability. Nevertheless, the application is not
+            in a final state and things can break. Note that specifically undefined behaviour may occur if you revoke
+            the API authorization on the side of the clients (YouTube, FFLogs, Twitch). Additionally, if you disrespect
+            common courtesy when executing queries (i.e., by spamming requests repeatedly), your API key may be revoked
+            and the application will stop functioning. You may be blacklisted from using FFLogs VOD Sync in this case.</p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-xl-4 p-1">
+            <div class="card">
+                <div class="card-body">
+                <h5 class="card-title">FFLogs Authorization</h5>
+                <hr />
+                <p class="card-text">Linking your FFLogs account is required for all operations on the FFLogs VOD
+                Sync tool.</p>
+                </div>
+                <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>What?</strong> Read and list logs, including your private logs. Read
+                    events and metadata from reports.</li>
+                    <li class="list-group-item"><strong>Why?</strong> FFLogs VOD Sync needs this information to convert
+                        events of your pulls into absolute timestamps to sync up with your VODs.
+                </li>
+                    <li class="list-group-item"><strong>How?</strong> We follow the PKCE key exchange flow to acquire a
+                    token corresponding to your FFLogs account.</li>
+                </ul>
+                <div class="card-body text-center">
+                    {% if "fflogs" in auths %}
+                        <p>Logged in: <strong>{{ auths["fflogs"]["username"] }}</strong>.</p>
+                        <form class="mt-2 d-inline-block" action="/auth/fflogs/signout" method="POST">
+                            <button class="btn btn-danger">Unlink this account.</button>
+                        </form>
+                    {% else %}
+                        <p>Not logged in.</p>
+                        <form class="mt-2 d-inline-block" action="/auth/fflogs/challenge" method="POST">
+                            <button class="btn btn-success">Authorize with FFLogs</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4 p-1">
+            <div class="card">
+                <div class="card-body">
+                <h5 class="card-title">YouTube Authorization</h5>
+                <hr />
+                <p class="card-text">You have to link your YouTube account to add YouTube VODs and livestreams to your
+                board.</p>
+                </div>
+                <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>What?</strong> Query for video and livestream details,
+                    including private streams and videos. </li>
+                    <li class="list-group-item"><strong>Why?</strong> FFLogs VOD Sync needs this information to
+                        set the appropriate VOD timestamp for an event based on when the VOD was started.
+                </li>
+                    <li class="list-group-item"><strong>How?</strong> Google Identity Services is used to acquire
+                    authorization to read data from YouTube.</li>
+                </ul>
+                <div class="card-body text-center">
+                    {% if "youtube" in auths %}
+                        <p>Logged in: <strong>{{ auths["youtube"]["username"] }}</strong>.</p>
+                        <form class="mt-2 d-inline-block" action="/auth/youtube/signout" method="POST">
+                            <button class="btn btn-danger">Unlink this account.</button>
+                        </form>
+                    {% else %}
+                        <p>Not logged in</p>.
+                        <form class="mt-2 d-inline-block" action="/auth/youtube/flow" method="POST">
+                            <button class="btn btn-success">Authorize with YouTube</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

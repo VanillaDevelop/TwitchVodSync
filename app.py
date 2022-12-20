@@ -13,6 +13,7 @@ import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
 from DocStore import MongoDB
 from views.fflogs import fflogs_routes
+from views.youtube import youtube_routes
 
 load_dotenv()
 app = Flask(__name__)
@@ -25,7 +26,11 @@ app.config["SESSION_MONGODB_DB"] = "VodSync"
 Session(app)
 
 app.register_blueprint(fflogs_routes)
+app.register_blueprint(youtube_routes)
 
+
+# !!!ONLY FOR TESTING!!! ALLOWS OAUTH VIA HTTP
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 @app.route('/')
 @cross_origin(supports_credentials=True, origins="*")
