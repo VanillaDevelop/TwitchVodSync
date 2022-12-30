@@ -74,9 +74,41 @@
                             <button class="btn btn-danger">Unlink this account.</button>
                         </form>
                     {% else %}
-                        <p>Not logged in</p>.
+                        <p>Not logged in.</p>
                         <form class="mt-2 d-inline-block" action="/auth/youtube/flow" method="POST">
                             <button class="btn btn-success">Authorize with YouTube</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    <div class="col-xl-4 p-1">
+            <div class="card">
+                <div class="card-body">
+                <h5 class="card-title">Twitch Authorization</h5>
+                <hr />
+                <p class="card-text">You have to link your Twitch account to add Twitch livestreams to your
+                board.</p>
+                </div>
+                <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>What?</strong> Query for video and livestream details. This
+                measure exposes no private details.</li>
+                    <li class="list-group-item"><strong>Why?</strong> FFLogs VOD Sync needs this information to
+                        set the appropriate VOD timestamp for an event based on when the VOD was started.
+                </li>
+                    <li class="list-group-item"><strong>How?</strong> We follow the official Twitch API's OAuth scheme
+                        to acquire authorization data for Twitch.</li>
+                </ul>
+                <div class="card-body text-center">
+                    {% if "twitch" in auths %}
+                        <p>Logged in: <strong>{{ auths["twitch"]["username"] }}</strong>.</p>
+                        <form class="mt-2 d-inline-block" action="/auth/twitch/signout" method="POST">
+                            <button class="btn btn-danger">Unlink this account.</button>
+                        </form>
+                    {% else %}
+                        <p>Not logged in.</p>
+                        <form class="mt-2 d-inline-block" action="/auth/twitch/challenge" method="POST">
+                            <button class="btn btn-success">Authorize with Twitch</button>
                         </form>
                     {% endif %}
                 </div>

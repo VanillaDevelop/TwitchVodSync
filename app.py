@@ -1,18 +1,18 @@
 import os
-import uuid
 
 import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
 from flask_cors import cross_origin
 from flask_session import Session
-from google.oauth2 import id_token
 from google.auth.transport import requests as google_auth_request
+from google.oauth2 import id_token
 
 import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
 from DocStore import MongoDB
 from views.fflogs import fflogs_routes
+from views.twitch import twitch_routes
 from views.youtube import youtube_routes
 
 load_dotenv()
@@ -27,10 +27,11 @@ Session(app)
 
 app.register_blueprint(fflogs_routes)
 app.register_blueprint(youtube_routes)
-
+app.register_blueprint(twitch_routes)
 
 # !!!ONLY FOR TESTING!!! ALLOWS OAUTH VIA HTTP
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 
 @app.route('/')
 @cross_origin(supports_credentials=True, origins="*")
@@ -102,50 +103,6 @@ def report():
                            start_epoch=data['startTime'],
                            code=request.args.get("code"),
                            twitch_token=session["twitch_token"] if "twitch_token" in session else None)
-
-
-@app.route('/auth/twitch_challenge', methods=['POST'])
-def auth_twitch():
-    # when button to start twitch out flow is clicked
-    # generate state, and store the report we came from
-    state = str(uuid.uuid4())
-    session['state_twitch'] = state
-    session['redirect_to_log'] = request.form.get("code")
-
-    # call twitch auth url with state
-    url = f"""https://id.twitch.tv/oauth2/authorize?""" \
-          f"""client_id={os.getenv("TWITCH_ID")}""" \
-          f"""&response_type=code""" \
-          f"""&state={state}""" \
-          f"""&scope=""" \
-          f"""&redirect_uri={host_url + url_for("auth_twitch_verify")}"""
-    return redirect(url)
-
-
-@app.route('/auth/twitch')
-def auth_twitch_verify():
-    # when redirected from Twitch
-    # compare state, request token with auth code provided
-    if session['state_twitch'] == request.args.get('state'):
-        r = requests.post("https://id.twitch.tv/oauth2/token", data={
-            "client_id": os.getenv("TWITCH_ID"),
-            "client_secret": os.getenv("TWITCH_SECRET"),
-            "code": request.args.get('code'),
-            "redirect_uri": host_url + url_for("auth_twitch_verify"),
-            "grant_type": "authorization_code",
-        })
-        # store twitch token and refresh token in session
-        if r.status_code == 200:
-            session['twitch_token'] = r.json()['access_token']
-            session['twitch_refresh_token'] = r.json()['refresh_token']
-
-        log = session['redirect_to_log']
-        del session['redirect_to_log']
-        del session['state_twitch']
-
-        return redirect(host_url + url_for("report") + "?code=" + log)
-
-    return redirect(host_url)
 
 
 @app.route('/ajax/twitch/vod', methods=['GET'])

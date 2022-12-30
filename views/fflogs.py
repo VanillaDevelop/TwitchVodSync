@@ -34,7 +34,7 @@ def auth_challenge():
 
 @fflogs_routes.route('/auth/fflogs/verify')
 def auth_verify():
-    if "user" not in session:
+    if "user" not in session or "fflogs_state" not in session or "fflogs_verifier" not in session:
         return redirect(host_url + url_for("index"))
 
     # compare state
@@ -53,15 +53,15 @@ def auth_verify():
             userdata = FFLogsAPI.get_username(r.json()["access_token"])
 
             session["auths"]["fflogs"] = {
-                "access_token": r.json()["access_token"],
+                "token": r.json()["access_token"],
                 "username": userdata["name"],
                 "uid": userdata["id"],
                 "refresh_token": r.json()["refresh_token"]
             }
             store_auth_keys(session["user"], session["auths"])
 
-        del session['fflogs_state']
-        del session['fflogs_verifier']
+    del session['fflogs_state']
+    del session['fflogs_verifier']
 
     return redirect(url_for('home'))
 
