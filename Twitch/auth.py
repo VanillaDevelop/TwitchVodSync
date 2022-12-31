@@ -63,7 +63,7 @@ def try_obtain_token(code: str, redirect_uri: str) -> (int, Optional[tuple[str, 
         "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     })
-    # store twitch token and refresh token user auths
+    # return twitch token and refresh token if successful
     if r.status_code == 200:
         data = json.loads(r.text)
         return 200, (data["access_token"], data["refresh_token"])

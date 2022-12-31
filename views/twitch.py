@@ -1,13 +1,12 @@
 import os
 import uuid
 
-import requests
 from dotenv import load_dotenv
 from flask import redirect, url_for, session, request, Blueprint
 
 from DocStore.MongoDB import store_auth_keys
 
-from Twitch import twitch
+from Twitch import auth
 
 load_dotenv()
 twitch_routes = Blueprint('twitch', __name__)
@@ -41,14 +40,14 @@ async def auth_verify():
     state_matches = session["twitch_state"] == state
     del session["twitch_state"]
 
-    if "user" not in session or not code or not state_matches:
+    if "user" not in session or "auths" not in session or not code or not state_matches:
         return redirect(host_url + url_for("home"))
 
     # when redirected from Twitch
-    status_token, data = twitch.try_obtain_token(code, host_url + url_for("twitch.auth_verify"))
+    status_token, data = auth.try_obtain_token(code, host_url + url_for("twitch.auth_verify"))
     # store twitch token and refresh token user auths if successful
     if status_token == 200:
-        status_name, name = twitch.try_get_username(data[0])
+        status_name, name = auth.try_get_username(data[0])
         if status_name == 200:
             session["auths"]["twitch"] = {
                 "token": data[0],
@@ -59,19 +58,20 @@ async def auth_verify():
     return redirect(host_url + url_for("home"))
 
 
-@twitch_routes.route('/auth/twitch/refresh')
+@twitch_routes.route('/auth/twitch/refresh', methods=['POST'])
 async def auth_refresh():
+    # don't allow users to arbitrarily request token refreshes
     if "twitch_refresh" not in session:
         return redirect(host_url + url_for("home"))
     del session["twitch_refresh"]
 
-    if "user" not in session or "twitch" not in session["auths"]:
+    if "user" not in session or "auths" not in session:
         return redirect(host_url + url_for("home"))
 
-    status_token, data = twitch.try_refresh_twitch_token(refresh_token=session["auths"]["twitch"]["refresh_token"])
+    status_token, data = auth.try_refresh_twitch_token(refresh_token=session["auths"]["twitch"]["refresh_token"])
     # store twitch token and refresh token user auths if successful
     if status_token == 200:
-        status_name, name = twitch.try_get_username(data[0])
+        status_name, name = auth.try_get_username(data[0])
         if status_name == 200:
             session["auths"]["twitch"] = {
                 "token": data[0],
@@ -89,7 +89,7 @@ async def auth_refresh():
 @twitch_routes.route('/auth/twitch/signout', methods=['POST'])
 def auth_signout():
     # signout from twitch session => delete the data stored by the twitch auth flow, then return home
-    if "user" in session and "twitch" in session["auths"] and request.method == "POST":
+    if "user" in session and "auths" in session and "twitch" in session["auths"]:
         del session["auths"]["twitch"]
         store_auth_keys(session["user"], session["auths"])
     return redirect(url_for('home'))
