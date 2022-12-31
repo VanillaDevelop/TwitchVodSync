@@ -71,9 +71,9 @@ def auth_verify():
 @fflogs_routes.route('/auth/fflogs/refresh')
 async def auth_refresh():
     # don't allow users to arbitrarily request token refreshes
-    # if "fflogs_refresh" not in session:
-    #     return redirect(host_url + url_for("home"))
-    # del session["fflogs_refresh"]
+    if "fflogs_refresh" not in session:
+        return redirect(host_url + url_for("home"))
+    del session["fflogs_refresh"]
 
     if "user" not in session or "auths" not in session or "fflogs" not in session["auths"]:
         return redirect(host_url + url_for("home"))
