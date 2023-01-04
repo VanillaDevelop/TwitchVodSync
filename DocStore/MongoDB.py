@@ -12,6 +12,11 @@ client = MongoClient(host=os.getenv("MONGODB_URI"), tls=True, tlsCertificateKeyF
 db = client.VodSync
 auth_collection = db.auths
 report_collection = db.reports
+metadata_collection = db.metadata
+
+
+# for mapping FFLogs encounter IDs to names
+fflogs_encounters = metadata_collection.find_one({"name": "encounter_dict"})["encounter_mappings"]
 
 
 def store_auth_keys(user: str, auths: dict) -> None:
@@ -54,3 +59,23 @@ def find_or_load_report(code: str, fflogs_token: str) -> Optional[dict]:
         if report:
             report_collection.insert_one(report)
     return report
+
+
+def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> dict:
+    """
+    Returns the encounter dictionary. Ensures that the encounter ID of all fights provided in the fights parameter
+    properly resolve to a name.
+    :param fights: The fight list for which the names need to be known.
+    :param fflogs_token: The fflogs auth token.
+    :return: The encounter ID mapping dictionary. Ensures all encounter IDs within fights resolve to a name.
+    """
+    for fight in fights:
+        eid = fight["encounterID"]
+        if str(eid) not in fflogs_encounters and eid != 0:
+            name = FFLogs.API.query_for_encounter_name(fflogs_token, eid)
+            if name:
+                fflogs_encounters[str(eid)] = name
+            metadata_collection.replace_one({"name": "encounter_dict"},
+                                            {"name": "encounter_dict", "encounter_mappings": fflogs_encounters},
+                                            upsert=True)
+    return fflogs_encounters

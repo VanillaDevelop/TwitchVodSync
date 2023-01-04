@@ -2,7 +2,7 @@
 
 {% block body %}
     <h3>Stream View</h3>
-    {% if twitch_token %}
+    {% if twitch_token %}-
         <div id="streams" style="min-height:300px;display:flex;flex-direction:row;flex-wrap:wrap;">
 
         </div>
@@ -24,7 +24,7 @@
         {% if fight["encounterID"] != 0 %}
         <div>
             <strong>Pull from {{fight["timestampStart"]}} to {{fight["timestampEnd"]}}
-                ({{encounternames[fight["encounterID"]]}})</strong>
+                ({{encounternames[fight["encounterID"]|string]}})</strong>
             <form onsubmit="submitWipe(event)">
                 <input hidden type="text" name="wipe" value="{{fight["endTime"]}}">
                 <button class="btn btn-primary">Show Wipe</button>

@@ -100,8 +100,8 @@ def report():
         return redirect(url_for("home"))
 
     return render_template('report.html', fights=data['fights'],
-                           encounternames=FFLogsAPI.get_encounter_dict(session["auths"]["fflogs"]["token"],
-                                                                       data["fights"]),
+                           encounternames=MongoDB.get_filled_encounter_dict(data["fights"],
+                                                                            session["auths"]["fflogs"]["token"]),
                            start_time=DateUtil.timestamp_to_string(data['startTime']),
                            end_time=DateUtil.timestamp_to_string(data['endTime']),
                            start_epoch=data['startTime'],

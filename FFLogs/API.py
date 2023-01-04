@@ -4,8 +4,6 @@ import requests
 
 from FFLogs import DateUtil
 
-encounters = dict()
-
 
 def get_username(token):
     """
@@ -142,26 +140,7 @@ def get_player_dict_by_report(token, code):
         return None
 
 
-def get_encounter_dict(token, fights):
-    """
-    Return the current mapping of encounter IDs to names.
-    Ensures that all encounter IDs present in the list of fights are part of the encounter dictionary.
-    :param token: The FFLogs access token of the user
-    :param fights: The list of fights for which to get the encounter names
-    :return: The full encounter dictionary as known by the API.
-    """
-    for fight in fights:
-        eid = fight["encounterID"]
-        if eid not in encounters and eid != 0:
-            name = __query_for_encounter_name(token, eid)
-            if not name:
-                return None
-            else:
-                encounters[eid] = name
-    return encounters
-
-
-def __query_for_encounter_name(token, eid):
+def query_for_encounter_name(token, eid):
     """
     Gets the name of a given encounter ID.
     :param token: The FFLogs API access token to query for the encounter name.
