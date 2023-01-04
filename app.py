@@ -29,9 +29,6 @@ app.register_blueprint(fflogs_routes)
 app.register_blueprint(youtube_routes)
 app.register_blueprint(twitch_routes)
 
-# !!!ONLY FOR TESTING!!! ALLOWS OAUTH VIA HTTP
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-
 
 @app.route('/')
 @cross_origin(supports_credentials=True, origins="*")
@@ -69,19 +66,27 @@ def home():
     if "user" not in session:
         return redirect(url_for("index"))
 
-    # if "recent_reports" not in session:
-    #    session["recent_reports"] = FFLogsAPI.get_fights_by_user(session["fflogs_token"], session["fflogs_uid"])
-
     if "auths" not in session:
         session["auths"] = MongoDB.get_auth_keys(session["user"])
 
     return render_template('home.html', username=session["user"], auths=session["auths"])
 
 
+@app.route('/reports')
+def reports():
+    if "user" not in session:
+        return redirect(url_for("index"))
+
+    return render_template('reports.html', auths=session["auths"], username=session["user"])
+
+
 @app.route('/report/')
 def report():
-    # require access token
-    if not session["token"]:
+    if "user" not in session:
+        return redirect(url_for("index"))
+
+    # check auths
+    if "twitch" not in session["auths"] or "youtube" not in session["auths"] or "fflogs" not in session["auths"]:
         return redirect(url_for("home"))
 
     # report code should be given as an argument
@@ -89,20 +94,20 @@ def report():
         return redirect(url_for("home"))
 
     # get all fights in report for given code
-    data = FFLogsAPI.get_report_data(session["token"], request.args.get("code"))
+    data = MongoDB.find_or_load_report(request.args.get("code"), session["auths"]["fflogs"]["token"])
     # simply redirect home for now if code is invalid
     if not data:
         return redirect(url_for("home"))
 
-    # add fight start times and end times as formatted timestamps
-    DateUtil.append_timestamps(data['startTime'], data['fights'])
     return render_template('report.html', fights=data['fights'],
-                           encounternames=FFLogsAPI.get_encounter_dict(session["token"], data['fights']),
+                           encounternames=FFLogsAPI.get_encounter_dict(session["auths"]["fflogs"]["token"],
+                                                                       data["fights"]),
                            start_time=DateUtil.timestamp_to_string(data['startTime']),
                            end_time=DateUtil.timestamp_to_string(data['endTime']),
                            start_epoch=data['startTime'],
                            code=request.args.get("code"),
-                           twitch_token=session["twitch_token"] if "twitch_token" in session else None)
+                           auths=session["auths"],
+                           username=session["user"])
 
 
 @app.route('/ajax/twitch/vod', methods=['GET'])

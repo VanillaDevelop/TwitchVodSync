@@ -1,4 +1,8 @@
+import time
+
 import requests
+
+from FFLogs import DateUtil
 
 encounters = dict()
 
@@ -90,7 +94,13 @@ def get_report_data(token, code):
     }"""
     r = __call_client_endpoint(query, token)
     if r:
-        return r.json()['data']['reportData']['report']
+        # append report ID to data as well as timestamp of acquisition
+        data = r.json()['data']['reportData']['report']
+        data["loaded_at"] = time.time()
+        data["code"] = code
+        # add fight start times and end times as formatted timestamps
+        DateUtil.append_timestamps(data["startTime"], data["fights"])
+        return data
     else:
         return None
 

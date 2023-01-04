@@ -1,27 +1,23 @@
-{% extends "template.html" %}
+{% extends "templatemain.html" %}
 
-{% block body %}
-<h1>Twitch VOD Sync</h1>
-Signed in as {{ username }}
-<h3>Enter report ID here</h3>
-<form action="/report/" method="GET">
-    <input type="text" name="code" />
-    <button class="btn btn-primary">Open Report</button>
-</form>
-{%  if reports %}
-    <h1>OR</h1>
-    <h3>Pick from your recent reports</h3>
-    {% for report in reports %}
-        <div>
-            {{ report['title'] }}
+{% block head %}
+    <link rel="stylesheet" href="{{  url_for('static', filename='reports.css') }}">
+{% endblock %}
+
+{% block content %}
+    <div id="report-wrapper">
+        <div id="fflogs-url">
+            <div>
+                <h3>Enter FFLogs URL</h3>
+                <p>Enter a full FFLogs URL or report code.</p>
+            </div>
             <form action="/report/" method="GET">
-                <input hidden type="text" name="code" value="{{ report['code'] }}" />
-                <button class="btn btn-primary">Open this report</button>
+                <div class="mb-3">
+                    <label for="reportUrl" class="form-label">Report URL/Code</label>
+                    <input id="reportUrl" type="text" name="code" class="form-control" />
+                </div>
+                <button type="submit" class="btn btn-primary">Open Report</button>
             </form>
         </div>
-    {% endfor %}
-{% endif %}
-<form action="/logout" method="POST">
-    <button class="btn btn-primary">Logout</button>
-</form>
+    </div>
 {% endblock %}

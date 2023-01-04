@@ -1,12 +1,17 @@
+from typing import Optional
+
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+
+import FFLogs.API
 
 load_dotenv()
 
 client = MongoClient(host=os.getenv("MONGODB_URI"), tls=True, tlsCertificateKeyFile=os.getenv("MONGODB_CERT"))
 db = client.VodSync
 auth_collection = db.auths
+report_collection = db.reports
 
 
 def store_auth_keys(user: str, auths: dict) -> None:
@@ -33,3 +38,19 @@ def get_auth_keys(user: str) -> dict:
         return dict()
     else:
         return auth
+
+
+def find_or_load_report(code: str, fflogs_token: str) -> Optional[dict]:
+    """
+    Attempt to find a report by code. If it doesn't exist, make one attempt to load it from FFLogs using the provided
+    token.
+    :param code: The report code.
+    :param fflogs_token: The fflogs auth token.
+    :return: The report data if it could be found or loaded. Otherwise None.
+    """
+    report = report_collection.find_one({"code": code})
+    if not report:
+        report = FFLogs.API.get_report_data(fflogs_token, code)
+        if report:
+            report_collection.insert_one(report)
+    return report
