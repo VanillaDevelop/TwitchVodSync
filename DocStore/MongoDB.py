@@ -14,7 +14,6 @@ auth_collection = db.auths
 report_collection = db.reports
 metadata_collection = db.metadata
 
-
 # for mapping FFLogs encounter IDs to names
 fflogs_encounters = metadata_collection.find_one({"name": "encounter_dict"})["encounter_mappings"]
 
@@ -55,8 +54,8 @@ def find_or_load_report(code: str, fflogs_token: str) -> Optional[dict]:
     """
     report = report_collection.find_one({"code": code})
     if not report:
-        report = FFLogs.API.get_report_data(fflogs_token, code)
-        if report:
+        status, report = FFLogs.API.get_report_data(fflogs_token, code)
+        if status == 200:
             report_collection.insert_one(report)
     return report
 
@@ -72,10 +71,10 @@ def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> dict:
     for fight in fights:
         eid = fight["encounterID"]
         if str(eid) not in fflogs_encounters and eid != 0:
-            name = FFLogs.API.query_for_encounter_name(fflogs_token, eid)
-            if name:
+            status, name = FFLogs.API.query_for_encounter_name(fflogs_token, eid)
+            if status == 200:
                 fflogs_encounters[str(eid)] = name
-            metadata_collection.replace_one({"name": "encounter_dict"},
-                                            {"name": "encounter_dict", "encounter_mappings": fflogs_encounters},
-                                            upsert=True)
+                metadata_collection.replace_one({"name": "encounter_dict"},
+                                                {"name": "encounter_dict", "encounter_mappings": fflogs_encounters},
+                                                upsert=True)
     return fflogs_encounters

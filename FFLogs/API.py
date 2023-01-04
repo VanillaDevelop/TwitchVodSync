@@ -1,6 +1,8 @@
 import time
+from typing import Tuple, Optional
 
 import requests
+from requests import Response
 
 from FFLogs import DateUtil
 
@@ -24,41 +26,9 @@ def get_username(token):
    }
    """
 
-    r = __call_user_endpoint(query, token)
-    if r:
-        return r.json()['data']['userData']['currentUser']
-    else:
-        return None
-
-
-def get_fights_by_user(token, uid):
-    """
-    Get recent reports by a given user
-    :param token: The FFLogs Access Token for the query
-    :param uid: The userid to get reports by
-    :return: Recent reports by this user (The first page)
-    """
-    query = """
-    query
-        {
-            reportData
-            {
-                reports(userID:""" + str(uid) + """,page:1)
-                {
-                    data
-                    {
-                        code,
-                        title,
-                        startTime
-                    }
-                }
-            }
-        }
-    """
-
-    r = __call_client_endpoint(query, token)
-    if r:
-        return r.json()['data']['reportData']['reports']['data']
+    status, data = __call_user_endpoint(query, token)
+    if status == 200:
+        return data.json()['data']['userData']['currentUser']
     else:
         return None
 
@@ -68,7 +38,7 @@ def get_report_data(token, code):
     Get info about fights in report
     :param token: The user access token
     :param code: The report code
-    :return: A list of fights in the report, and metadata on the report.
+    :return: A tuple of (status, data) if successful, otherwise (status, None).
     """
 
     query = """
@@ -90,54 +60,17 @@ def get_report_data(token, code):
             }
         }
     }"""
-    r = __call_client_endpoint(query, token)
-    if r:
+    status, data = __call_client_endpoint(query, token)
+    if status == 200:
         # append report ID to data as well as timestamp of acquisition
-        data = r.json()['data']['reportData']['report']
+        data = data.json()['data']['reportData']['report']
         data["loaded_at"] = time.time()
         data["code"] = code
         # add fight start times and end times as formatted timestamps
         DateUtil.append_timestamps(data["startTime"], data["fights"])
-        return data
+        return 200, data
     else:
-        return None
-
-
-def get_player_dict_by_report(token, code):
-    """
-    Get player data for a given report
-    :param token: The FFLogs API Access Token
-    :param code: The code to get the data for.
-    :return:
-    """
-    query = """
-    query
-    {
-        reportData
-        {
-            report(code: \"""" + str(code) + """\")
-            {
-                masterData
-                {
-                    actors(type: "Player")
-                    {
-                        id,
-                        name,
-                        server
-                    }
-                }
-            }
-        }
-    }
-    """
-    r = __call_client_endpoint(query, token)
-    if r:
-        player_dict = dict()
-        for player in r.json()['data']['reportData']['report']['masterData']['actors']:
-            player_dict[player['id']] = player['name']
-        return player_dict
-    else:
-        return None
+        return status, None
 
 
 def query_for_encounter_name(token, eid):
@@ -145,7 +78,7 @@ def query_for_encounter_name(token, eid):
     Gets the name of a given encounter ID.
     :param token: The FFLogs API access token to query for the encounter name.
     :param eid: The encounter ID to query for.
-    :return: The name of the encounter.
+    :return: A tuple of (status code, encounter name) if successful, otherwise (status code, None)
     """
     query = """
     query
@@ -159,24 +92,36 @@ def query_for_encounter_name(token, eid):
         }
     }
     """
-    r = __call_client_endpoint(query, token)
-    if r:
-        return r.json()['data']['worldData']['encounter']['name']
+    status, data = __call_client_endpoint(query, token)
+    if status == 200:
+        return 200, data.json()['data']['worldData']['encounter']['name']
     else:
-        return None
+        return status, None
 
 
-def __call_user_endpoint(query, token):
+def __call_user_endpoint(query: str, token: str) -> Tuple[int, Optional[Response]]:
+    """
+    Send a query to the FFLogs user endpoint.
+    :param query: The query to send.
+    :param token: The bearer token.
+    :return: A tuple of (Status Code, Data) if successful, otherwise (Status Code, None)
+    """
     url = 'https://www.fflogs.com/api/v2/user'
     r = requests.post(url, json={'query': query}, headers={"Authorization": f"Bearer {token}"})
     if r.status_code == 200:
-        return r
-    return None
+        return 200, r
+    return r.status_code, None
 
 
-def __call_client_endpoint(query, token):
+def __call_client_endpoint(query: str, token: str) -> Tuple[int, Optional[Response]]:
+    """
+    Send a query to the FFLogs client endpoint.
+    :param query: The query to send.
+    :param token: The bearer token.
+    :return: A tuple of (Status Code, Data) if successful, otherwise (Status Code, None)
+    """
     url = 'https://www.fflogs.com/api/v2/client'
     r = requests.post(url, json={'query': query}, headers={"Authorization": f"Bearer {token}"})
     if r.status_code == 200:
-        return r
-    return None
+        return 200, r
+    return r.status_code, None

@@ -63,7 +63,7 @@ def auth_verify():
                 "uid": userdata["id"],
                 "refresh_token": data[1]
             }
-        store_auth_keys(session["user"], session["auths"])
+            store_auth_keys(session["user"], session["auths"])
 
     return redirect(url_for('home'))
 
@@ -89,8 +89,11 @@ async def auth_refresh():
                 "uid": userdata["id"],
                 "refresh_token": data[1]
             }
+        else:
+            # otherwise delete no longer functioning auth (user must manually reauthorize)
+            del session["auths"]["fflogs"]
     else:
-        # otherwise delete no longer functioning auth (user must manually reauthorize)
+        # same here
         del session["auths"]["fflogs"]
 
     store_auth_keys(session["user"], session["auths"])
