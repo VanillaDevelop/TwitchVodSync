@@ -1,37 +1,64 @@
-{% extends "template.html" %}
+{% extends "templatemain.html" %}
 
-{% block body %}
-    <h3>Stream View</h3>
-    {% if twitch_token %}-
+{% block content %}
+    <div class="container mt-5">
+        <h3>Stream View</h3>
+        <div class="row">
+            <div class="col-md-6 col-12">
+                <form onsubmit="submitTwitchVod(event)" id=twitchvod_form">
+                    <div class="mb-3">
+                        <label class="form-label">Add Twitch VOD or Stream</label>
+                        <input type="text" id="twitch_vod" placeholder="Twitch Video ID" class="form-control"/>
+                    </div>
+                    <button class="btn btn-primary">Add Twitch Video</button>
+                </form>
+            </div>
+            <div class="col-md-6 col">
+                <form onsubmit="submitTwitchVod(event)" id=twitchvod_form">
+                    <div class="mb-3">
+                        <label class="form-label">Add YouTube VOD or Stream</label>
+                        <input type="text" id="twitch_vod" placeholder="YouTube Video ID" class="form-control"/>
+                    </div>
+                    <button class="btn btn-primary">Add YouTube Video</button>
+                </form>
+            </div>
+        </div>
+
         <div id="streams" style="min-height:300px;display:flex;flex-direction:row;flex-wrap:wrap;">
 
         </div>
-        <h5>Add a Twitch VOD</h5>
-        <form onsubmit="submitVod(event)" id=twitchvod_form">
-            <input type="text" id="twitch_vod" placeholder="Video ID"/>
-            <button class="btn btn-primary">Add Twitch VOD</button>
-        </form>
-    {% else %}
-        To add a stream view, you need to authorize with Twitch.
-        Sign-in with Twitch
-        <form action="/auth/twitch_challenge" method="POST">
-            <input hidden type="text" name="code" value="{{code}}"/>
-            <button class="btn btn-primary">Sign-in</button>
-        </form>
-    {% endif %}
-    <div><h3>This report was created from {{ start_time }} to {{ end_time }}</h3></div>
-    {% for fight in fights %}
-        {% if fight["encounterID"] != 0 %}
-        <div>
-            <strong>Pull from {{fight["timestampStart"]}} to {{fight["timestampEnd"]}}
-                ({{encounternames[fight["encounterID"]|string]}})</strong>
-            <form onsubmit="submitWipe(event)">
-                <input hidden type="text" name="wipe" value="{{fight["endTime"]}}">
-                <button class="btn btn-primary">Show Wipe</button>
-            </form>
+
+    <h3>Report Control</h3>
+    <div>
+        <h5>Report Info</h5>
+    </div>
+    <div>
+        <strong>{{ title }}</strong>
+        <p>This report runs from <strong>{{ start_time }}</strong> until <strong>{{ end_time }}</strong>.<br />
+        It contains {{fights|length}} pulls.</p>
+        <div class="row">
+            {% for fight in fights %}
+                {% if fight["encounterID"] != 0 %}
+                    <div class="col-6 col-lg-4">
+                        <div class="card my-2">
+                          <div class="card-body">
+                            <h5 class="card-title">Pull {{ loop.index }}</h5>
+                            <p class="card-text">
+                                <strong>{{encounternames[fight["encounterID"]|string]}}</strong></br>
+                                {{fight["timestampStart"]}} to {{fight["timestampEnd"]}}<br/>
+                            </p>
+                            <form onsubmit="submitWipe(event)">
+                                <input hidden type="text" name="wipe" value="{{fight["endTime"]}}">
+                                <button class="btn btn-primary">Show Wipe</button>
+                            </form>
+                          </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
         </div>
-        {% endif %}
-    {% endfor %}
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -41,9 +68,11 @@
     videonames = {}
     videoplayers = {}
 
+    last_timestamp = null
+
     const start_epoch = parseFloat({{ start_epoch }})
 
-    function submitVod(event)
+    function submitTwitchVod(event)
     {
         event.preventDefault();
         let vid_id = $('#twitch_vod').val();
@@ -80,11 +109,11 @@
         event.preventDefault();
         let formData = new FormData(event.target);
         let timestamp = parseFloat(formData.get('wipe'))
-        let pullWipe = start_epoch + timestamp - 10000;
+        let pullWipe = (start_epoch + timestamp)/1000 - 10;
 
         Object.keys(videolist).forEach(id =>
         {
-            videoplayers[id].seek((pullWipe - videolist[id])/1000)
+            videoplayers[id].seek((pullWipe - videolist[id]))
         });
     }
     </script>

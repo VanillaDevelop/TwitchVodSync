@@ -127,7 +127,7 @@ def report():
                            start_time=DateUtil.timestamp_to_string(data['startTime']),
                            end_time=DateUtil.timestamp_to_string(data['endTime']),
                            start_epoch=data['startTime'],
-                           code=request.args.get("code"),
+                           title=data['title'],
                            auths=session["auths"],
                            username=session["user"])
 

@@ -57,6 +57,7 @@ def get_report_data(token, code):
                     endTime,
                     encounterID,
                 },
+                title
             }
         }
     }"""
