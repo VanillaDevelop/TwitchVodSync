@@ -10,6 +10,7 @@ from google.oauth2 import id_token
 
 import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
+import FFLogs.auth
 from DocStore import MongoDB
 from views.fflogs import fflogs_routes
 from views.twitch import twitch_routes
@@ -94,14 +95,35 @@ def report():
         return redirect(url_for("home"))
 
     # get all fights in report for given code
-    data = MongoDB.find_or_load_report(request.args.get("code"), session["auths"]["fflogs"]["token"])
-    # simply redirect home for now if code is invalid
-    if not data:
+    report_status, data = MongoDB.find_or_load_report(request.args.get("code"), session["auths"]["fflogs"]["token"])
+    if report_status == 401:
+        refresh_status, refresh_data = FFLogs.auth.try_refresh_fflogs_token(
+            refresh_token=session["auths"]["fflogs"]["refresh_token"])
+        if refresh_status != 200:
+            # jank auth, reset and redirect
+            del session["auths"]["fflogs"]
+            MongoDB.store_auth_keys(session["user"], session["auths"])
+            return redirect(url_for("home"))
+        else:
+            session["auths"]["fflogs"]["token"] = refresh_data[0]
+            session["auths"]["fflogs"]["refresh_token"] = refresh_data[1]
+            MongoDB.store_auth_keys(session["user"], session["auths"])
+        # re-query
+        report_status, data = MongoDB.find_or_load_report(request.args.get("code"), session["auths"]["fflogs"]["token"])
+
+    # simply redirect home if we get an error after a potential 401 retry
+    if report_status != 200:
+        return redirect(url_for("home"))
+
+    dict_status, encounternames = MongoDB.get_filled_encounter_dict(data["fights"], session["auths"]["fflogs"]["token"])
+
+    # we assume the key didn't time out between the last call and this, so if anything goes wrong here, we just send
+    # the user back (this should happen extremely, EXTREMELY rarely if at all since encounter dict calls are rare)
+    if dict_status != 200:
         return redirect(url_for("home"))
 
     return render_template('report.html', fights=data['fights'],
-                           encounternames=MongoDB.get_filled_encounter_dict(data["fights"],
-                                                                            session["auths"]["fflogs"]["token"]),
+                           encounternames=encounternames,
                            start_time=DateUtil.timestamp_to_string(data['startTime']),
                            end_time=DateUtil.timestamp_to_string(data['endTime']),
                            start_epoch=data['startTime'],

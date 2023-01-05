@@ -44,30 +44,36 @@ def get_auth_keys(user: str) -> dict:
         return auth
 
 
-def find_or_load_report(code: str, fflogs_token: str) -> Optional[dict]:
+def find_or_load_report(code: str, fflogs_token: str) -> (int, Optional[dict]):
     """
     Attempt to find a report by code. If it doesn't exist, make one attempt to load it from FFLogs using the provided
     token.
     :param code: The report code.
     :param fflogs_token: The fflogs auth token.
-    :return: The report data if it could be found or loaded. Otherwise None.
+    :return: A status code, and the report data if it could be found or loaded. Otherwise None.
     """
     report = report_collection.find_one({"code": code})
+    status = 200
     if not report:
         status, report = FFLogs.API.get_report_data(fflogs_token, code)
         if status == 200:
-            report_collection.insert_one(report)
-    return report
+            if report is not None:
+                report_collection.insert_one(report)
+            else:
+                status = 800 # random error code to signify that the report is empty
+    return status, report
 
 
-def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> dict:
+def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> (int, Optional[dict]):
     """
     Returns the encounter dictionary. Ensures that the encounter ID of all fights provided in the fights parameter
     properly resolve to a name.
     :param fights: The fight list for which the names need to be known.
     :param fflogs_token: The fflogs auth token.
-    :return: The encounter ID mapping dictionary. Ensures all encounter IDs within fights resolve to a name.
+    :return: The query status and the encounter ID mapping dictionary. If the status is 200, this function guarantees
+    all encounter IDs within fights resolve to a name.
     """
+    status = 200
     for fight in fights:
         eid = fight["encounterID"]
         if str(eid) not in fflogs_encounters and eid != 0:
@@ -77,4 +83,6 @@ def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> dict:
                 metadata_collection.replace_one({"name": "encounter_dict"},
                                                 {"name": "encounter_dict", "encounter_mappings": fflogs_encounters},
                                                 upsert=True)
-    return fflogs_encounters
+            else:
+                break
+    return status, fflogs_encounters

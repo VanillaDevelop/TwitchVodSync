@@ -62,12 +62,14 @@ def get_report_data(token, code):
     }"""
     status, data = __call_client_endpoint(query, token)
     if status == 200:
-        # append report ID to data as well as timestamp of acquisition
         data = data.json()['data']['reportData']['report']
-        data["loaded_at"] = time.time()
-        data["code"] = code
-        # add fight start times and end times as formatted timestamps
-        DateUtil.append_timestamps(data["startTime"], data["fights"])
+        # if there is any data (i.e. the report actually exists)
+        if data:
+            # append report ID to data as well as timestamp of acquisition
+            data["loaded_at"] = time.time()
+            data["code"] = code
+            # add fight start times and end times as formatted timestamps
+            DateUtil.append_timestamps(data["startTime"], data["fights"])
         return 200, data
     else:
         return status, None
