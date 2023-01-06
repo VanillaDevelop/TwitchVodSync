@@ -53,6 +53,7 @@ def ajax_vod_twitch():
             return {
                 "id": video_id,
                 "title": r.json()['data'][0]['title'],
+                "username": r.json()['data'][0]['user_name'],
                 "created_at": r.json()['data'][0]['created_at']
             }
         else:
@@ -97,7 +98,8 @@ def ajax_vod_youtube():
             return {
                 "id": video_id,
                 "title": data[0]['snippet']['title'],
-                "created_at": data[0]['snippet']['publishedAt']
+                "created_at": data[0]['snippet']['publishedAt'],
+                "username": data[0]['snippet']['channelTitle']
             }
         else:
             return f"YouTube API returned {r.status_code}.", 400

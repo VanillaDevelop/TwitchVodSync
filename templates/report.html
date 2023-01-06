@@ -1,34 +1,44 @@
 {% extends "templatemain.html" %}
 
+{% block head %}
+    <link rel="stylesheet" href="{{  url_for('static', filename='report.css') }}">
+{% endblock %}
+
 {% block content %}
-    <div class="container mt-5">
-        <h3>Stream View</h3>
-        <div class="row">
-            <div class="col-md-6 col-12">
-                <form onsubmit="submitTwitchVod(event)" id=twitchvod_form">
-                    <div class="mb-3">
-                        <label class="form-label">Add Twitch VOD or Stream</label>
-                        <input type="text" id="twitch_vod" placeholder="Twitch Video ID" class="form-control"/>
-                    </div>
-                    <button class="btn btn-primary">Add Twitch Video</button>
-                </form>
-            </div>
-            <div class="col-md-6 col">
-                <form onsubmit="submitTwitchVod(event)" id=twitchvod_form">
-                    <div class="mb-3">
-                        <label class="form-label">Add YouTube VOD or Stream</label>
-                        <input type="text" id="twitch_vod" placeholder="YouTube Video ID" class="form-control"/>
-                    </div>
-                    <button class="btn btn-primary">Add YouTube Video</button>
-                </form>
-            </div>
+<div class="container mt-5">
+    <h3>Stream Control</h3>
+    <div class="row">
+        <div class="col-md-6 col-12">
+            <form onsubmit="submitTwitchVod(event)" id=twitchvod_form">
+                <div class="mb-3">
+                    <label class="form-label">Add Twitch VOD or Stream</label>
+                    <input type="text" id="twitch_vod" placeholder="Twitch Video ID" class="form-control"/>
+                </div>
+                <button class="btn btn-primary">Add Twitch Video</button>
+            </form>
         </div>
-
-        <div id="streams" style="min-height:300px;display:flex;flex-direction:row;flex-wrap:wrap;">
-
+        <div class="col-md-6 col">
+            <form onsubmit="submitYoutubeVod(event)" id=ytvod_form">
+                <div class="mb-3">
+                    <label class="form-label">Add YouTube VOD or Stream</label>
+                    <input type="text" id="youtube_vod" placeholder="YouTube Video ID" class="form-control"/>
+                </div>
+                <button class="btn btn-primary">Add YouTube Video</button>
+            </form>
         </div>
+    </div>
 
-    <h3>Report Control</h3>
+    <h3 class="mt-4">Stream List</h3>
+    <div id="streams" class="row">
+        <p>Loaded VODs will appear here.</p>
+    </div>
+
+    <h3 class="mt-4">Stream View</h3>
+    <div id="main_stream">
+        <p>The main selected stream will appear here.</p>
+    </div>
+
+    <h3 class="mt-4">Report Control</h3>
     <div>
         <h5>Report Info</h5>
     </div>
@@ -62,21 +72,22 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src= "https://player.twitch.tv/js/embed/v1.js"></script>
+    <script src="https://player.twitch.tv/js/embed/v1.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></scripT>
     <script>
-    videolist = {}
-    videonames = {}
-    videoplayers = {}
-
-    last_timestamp = null
+    videos = {}
+    current_player = null
 
     const start_epoch = parseFloat({{ start_epoch }})
+
+    function onYouTubeIframeAPIReady() {}
+
 
     function submitTwitchVod(event)
     {
         event.preventDefault();
         let vid_id = $('#twitch_vod').val();
-        if(vid_id in videolist) return;
+        if(vid_id in videos) return;
         $.ajax({
             async: true,
             type: "GET",
@@ -85,21 +96,43 @@
             contentType: "application/json; charset=utf-8",
             success: function (msg) {
                 let d = new Date(msg['created_at']);
-                videolist[msg['id']] = d.getTime();
-                videonames[msg['id']] = msg['title'];
+                videos[msg['id']] = {
+                    'timestamp': d.getTime(),
+                    'player': "twitch"
+                }
 
                 let newNode = document.createElement('div')
                 newNode.setAttribute("id", "stream" + msg['id'])
+                newNode.setAttribute("class", "twitch col-4 col-lg-3")
+                newNode.innerHTML = getStreamHTML(msg['id'], msg['username'], d, "twitch")
                 $('#streams').append(newNode);
+            }
+         });
+    }
 
-                var options = {
-                    height: 300,
-                    width: 500,
-                    video: msg['id'],
-                };
-                var player = new Twitch.Player("stream" + msg['id'], options);
-                player.setVolume(0.5);
-                videoplayers[msg['id']] = player
+    function submitYoutubeVod(event)
+    {
+        event.preventDefault();
+        let vid_id = $('#youtube_vod').val();
+        if(vid_id in videos) return;
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: 'json',
+            url: "/ajax/youtube/vod?id=" + vid_id,
+            contentType: "application/json; charset=utf-8",
+            success: function (msg) {
+                let d = new Date(msg['created_at']);
+                videos[msg['id']] = {
+                    'timestamp': d.getTime(),
+                    'player': "youtube"
+                }
+
+                let newNode = document.createElement('div')
+                newNode.setAttribute("id", "stream" + msg['id'])
+                newNode.setAttribute("class", "youtube col-4 col-lg-3")
+                newNode.innerHTML = getStreamHTML(msg['id'], msg['username'], d, "youtube")
+                $('#streams').append(newNode);
             }
          });
     }
@@ -107,14 +140,78 @@
     function submitWipe(event)
     {
         event.preventDefault();
-        let formData = new FormData(event.target);
-        let timestamp = parseFloat(formData.get('wipe'))
-        let pullWipe = (start_epoch + timestamp)/1000 - 10;
 
-        Object.keys(videolist).forEach(id =>
+        if(current_player == null)
+            return
+
+        let formData = new FormData(event.target);
+
+        if(current_player.constructor.name === "r")
         {
-            videoplayers[id].seek((pullWipe - videolist[id]))
-        });
+            //twitch player. don't ask me why.
+            let timestamp = parseFloat(formData.get('wipe'))
+            let pullWipe = (start_epoch + timestamp)/1000 - 10;
+            current_player.seek(pullWipe - videos[id]['timestamp'])
+        }
+        else
+        {
+            //youtube player because not twitch player, hehe
+            let pullWipe = (timestamp)/1000 - 10;
+            console.log(pullWipe)
+            current_player.seekTo(pullwipe)
+
+        }
+
+
+    }
+
+    function makeStreamPrimary(id)
+    {
+        if(!(id in videos))
+            return;
+
+        if(videos[id]['player'] === "twitch")
+        {
+                $("#main_stream").html("")
+                var options = {
+                    width: 560,
+                    height: 315,
+                    video: id,
+                };
+                current_player = new Twitch.Player("main_stream", options);
+                player.setVolume(0.5);
+        }
+        else
+        {
+            $("#main_stream").html("<div id=\"yt_embed\"></div>")
+            current_player = new YT.Player('yt_embed', {
+                      height: '315',
+                      width: '560',
+                      videoId: id,
+                      playerVars: {
+                        'playsinline': 1,
+                        'autoplay': 1
+                      }
+                    });
+
+        }
+    }
+
+    function getStreamHTML(id, stream_name, creation_date, platform)
+    {
+        return `
+        <div class="card my-2 stream">
+          <div class="card-body d-flex justify-content-between flex-column">
+              <div class="d-flex justify-content-between">
+                    <h5 class="card-title d-inline">${stream_name}</h5> <img src="/static/${platform}.png" width="32" height="32">
+              </div>
+              <p>VOD created at ${creation_date}</p>
+            <button class="btn btn-primary mb-1" onClick="makeStreamPrimary('${id}')">Make Primary</button>
+            <button class="btn btn-danger">Remove Stream</button>
+          </div>
+        </div>`
     }
     </script>
+
+
 {% endblock %}

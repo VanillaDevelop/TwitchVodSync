@@ -1,6 +1,5 @@
 import os
 
-import requests
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
 from flask_cors import cross_origin
@@ -8,7 +7,6 @@ from flask_session import Session
 from google.auth.transport import requests as google_auth_request
 from google.oauth2 import id_token
 
-import FFLogs.API as FFLogsAPI
 import FFLogs.DateUtil as DateUtil
 import FFLogs.auth
 from DocStore import MongoDB
