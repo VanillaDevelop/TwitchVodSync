@@ -57,7 +57,7 @@
                                 <strong>{{encounternames[fight["encounterID"]|string]}}</strong></br>
                                 {{fight["timestampStart"]}} to {{fight["timestampEnd"]}}<br/>
                             </p>
-                            <form onsubmit="submitWipe(event)">
+                            <form onsubmit="showWipe(event)">
                                 <input hidden type="text" name="wipe" value="{{fight["endTime"]}}">
                                 <button class="btn btn-primary">Show Wipe</button>
                             </form>
@@ -77,6 +77,7 @@
     <script>
     videos = {}
     current_player = null
+    current_start = null
 
     const start_epoch = parseFloat({{ start_epoch }})
 
@@ -97,7 +98,7 @@
             success: function (msg) {
                 let d = new Date(msg['created_at']);
                 videos[msg['id']] = {
-                    'timestamp': d.getTime(),
+                    'timestamp': d.getTime()/1000,
                     'player': "twitch"
                 }
 
@@ -124,7 +125,7 @@
             success: function (msg) {
                 let d = new Date(msg['created_at']);
                 videos[msg['id']] = {
-                    'timestamp': d.getTime(),
+                    'timestamp': d.getTime()/1000,
                     'player': "youtube"
                 }
 
@@ -137,7 +138,7 @@
          });
     }
 
-    function submitWipe(event)
+    function showWipe(event)
     {
         event.preventDefault();
 
@@ -145,21 +146,17 @@
             return
 
         let formData = new FormData(event.target);
+        let timestamp = parseFloat(formData.get('wipe'))
+        let pullWipe = (start_epoch + timestamp)/1000 - 10; //epoch timestamp (seconds) of 10 seconds before wipe
 
         if(current_player.constructor.name === "r")
         {
             //twitch player. don't ask me why.
-            let timestamp = parseFloat(formData.get('wipe'))
-            let pullWipe = (start_epoch + timestamp)/1000 - 10;
-            current_player.seek(pullWipe - videos[id]['timestamp'])
+            current_player.seek(pullWipe - current_start)
         }
         else
         {
-            //youtube player because not twitch player, hehe
-            let pullWipe = (timestamp)/1000 - 10;
-            console.log(pullWipe)
-            current_player.seekTo(pullwipe)
-
+            current_player.seekTo(pullWipe - current_start)
         }
 
 
@@ -174,8 +171,8 @@
         {
                 $("#main_stream").html("")
                 var options = {
-                    width: 560,
-                    height: 315,
+                    width: 1080,
+                    height: 720,
                     video: id,
                 };
                 current_player = new Twitch.Player("main_stream", options);
@@ -185,16 +182,17 @@
         {
             $("#main_stream").html("<div id=\"yt_embed\"></div>")
             current_player = new YT.Player('yt_embed', {
-                      height: '315',
-                      width: '560',
+                      height: '720',
+                      width: '1080',
                       videoId: id,
                       playerVars: {
                         'playsinline': 1,
                         'autoplay': 1
-                      }
+                      },
                     });
 
         }
+        current_start = videos[id]['timestamp']
     }
 
     function getStreamHTML(id, stream_name, creation_date, platform)
