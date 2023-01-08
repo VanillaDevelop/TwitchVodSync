@@ -71,10 +71,42 @@ def get_report_data(token, code):
             data["code"] = code
             # add fight start times and end times as formatted timestamps
             DateUtil.append_timestamps(data["startTime"], data["fights"])
+            # order fights by their end time (latest pull first)
+            data["fights"].sort(key=lambda x: x["endTime"], reverse=True)
         return 200, data
     else:
         return status, None
 
+
+def __append_death_info(token, report_data, start_time):
+    """
+    Append death information for a given report
+    :param token: The user access token
+    :param report_data: The report data (collected by the get_report_data function)
+    :param start_time: The earliest time to collect death data from
+    :return: True if successful, false if not. If true, the death data is appended to report_data.
+    """
+
+    last_timestamp = report_data["fights"][0]["endTime"] # last pull should be first
+
+    death_query = """
+    query
+    {
+            reportData
+            {
+                    report(code: \"""" + report_data["code"] + """\")
+                    {
+                        events(dataType: Deaths, startTime: """ + start_time + """, endTime: """ + last_timestamp + """)
+                        {
+                            data,
+                            nextPageTimestamp
+                        }
+                    }
+            }
+    }"""
+    
+    status, data = __call_client_endpoint(death_query, token)
+    return True
 
 def query_for_encounter_name(token, eid):
     """

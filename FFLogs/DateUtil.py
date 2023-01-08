@@ -9,10 +9,10 @@ def append_timestamps(report_start, fights):
     :return: None. The operation is in-place.
     """
     for fight in fights:
-        start = datetime.datetime.fromtimestamp(float(report_start)/1000 + float(fight['startTime'])/1000)
-        end = datetime.datetime.fromtimestamp(float(report_start)/1000 + float(fight['endTime'])/1000)
-        fight['timestampStart'] = start.strftime("%H:%M:%S")
-        fight['timestampEnd'] = end.strftime("%H:%M:%S")
+        start = datetime.datetime.utcfromtimestamp(float(report_start)/1000 + float(fight['startTime'])/1000)
+        end = datetime.datetime.utcfromtimestamp(float(report_start)/1000 + float(fight['endTime'])/1000)
+        fight['timestampStart'] = start.strftime("%H:%M:%S UTC")
+        fight['timestampEnd'] = end.strftime("%H:%M:%S UTC")
 
 
 def timestamp_to_string(timestamp):
@@ -21,4 +21,4 @@ def timestamp_to_string(timestamp):
     :param timestamp: The timestamp to convert
     :return: A string of the date and time represented within the epoch timestamp.
     """
-    return datetime.datetime.fromtimestamp(float(timestamp)/1000).strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.datetime.utcfromtimestamp(float(timestamp)/1000).strftime("%Y-%m-%d %H:%M:%S UTC")

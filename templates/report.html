@@ -6,6 +6,11 @@
 
 {% block content %}
 <div class="container mt-5">
+    <h3>Report Info</h3>
+    <h5><strong>Report:</strong> {{ title }}</h5>
+    <p>This report runs from <strong>{{ start_time }}</strong> until <strong>{{ end_time }}</strong>.<br />
+    It contains {{fights|length}} pulls.</p>
+
     <h3>Stream Control</h3>
     <div class="row">
         <div class="col-md-6 col-12">
@@ -39,13 +44,6 @@
     </div>
 
     <h3 class="mt-4">Report Control</h3>
-    <div>
-        <h5>Report Info</h5>
-    </div>
-    <div>
-        <strong>{{ title }}</strong>
-        <p>This report runs from <strong>{{ start_time }}</strong> until <strong>{{ end_time }}</strong>.<br />
-        It contains {{fights|length}} pulls.</p>
         <div class="row">
             {% for fight in fights %}
                 {% if fight["encounterID"] != 0 %}
@@ -195,6 +193,17 @@
         current_start = videos[id]['timestamp']
     }
 
+    function removeStream(id)
+    {
+        if(!(id in videos))
+            return;
+
+        delete videos[id];
+
+        $(`#stream${id}`).remove()
+
+    }
+
     function getStreamHTML(id, stream_name, creation_date, platform)
     {
         return `
@@ -205,7 +214,7 @@
               </div>
               <p>VOD created at ${creation_date}</p>
             <button class="btn btn-primary mb-1" onClick="makeStreamPrimary('${id}')">Make Primary</button>
-            <button class="btn btn-danger">Remove Stream</button>
+            <button class="btn btn-danger" onClick="removeStream('${id}')">Remove Stream</button>
           </div>
         </div>`
     }

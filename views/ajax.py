@@ -1,9 +1,12 @@
+import json
 import os
 
 import requests
+from bson import json_util
 from dotenv import load_dotenv
 from flask import session, request, Blueprint
 
+import FFLogs.auth
 import Twitch.auth
 import YouTube.auth
 from DocStore import MongoDB
@@ -103,3 +106,37 @@ def ajax_vod_youtube():
             }
         else:
             return f"YouTube API returned {r.status_code}.", 400
+
+
+# method called via ajax to get pull info of a report
+@ajax_routes.route('/ajax/fflogs/report', methods=['GET'])
+def ajax_fflogs_report():
+    if not session["auths"]["fflogs"]:
+        return "Not authenticated with FFLogs", 401
+
+    report = request.args.get("code")
+    if not report:
+        return "No report code provided.", 400
+
+    else:
+        status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"])
+        if status == 401:
+            # try to refresh the token once if we get 401 (maybe expired)
+            refresh_status, refresh_data = FFLogs.auth.try_refresh_fflogs_token(
+                refresh_token=session['auths']['fflogs']['refresh_token'])
+            if refresh_status != 200:
+                # jank auth, reset and redirect
+                del session["auths"]["fflogs"]
+                MongoDB.store_auth_keys(session["user"], session["auths"])
+                return "Authorization Issue", 401
+            else:
+                session["auths"]["fflogs"]["token"] = refresh_data[0]
+                session["auths"]["fflogs"]["refresh_token"] = refresh_data[1]
+                MongoDB.store_auth_keys(session["user"], session["auths"])
+                status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"])
+
+        if status == 200:
+            del data["_id"]
+            return json_util.dumps(data)
+        else:
+            return f"FFLogs API returned {status}.", 400
