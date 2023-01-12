@@ -9,26 +9,27 @@
     <h3>Report Info</h3>
     <h5><strong>Report:</strong> {{ title }}</h5>
     <p>This report runs from <strong>{{ start_time }}</strong> until <strong>{{ end_time }}</strong>.<br />
-    It contains {{fights|length}} pulls.</p>
+    <span id="pullno"></span>
+    <p/>
 
     <h3>Stream Control</h3>
     <div class="row">
         <div class="col-md-6 col-12">
-            <form onsubmit="submitTwitchVod(event)" id=twitchvod_form">
+            <form id=twitchvod_form" onsubmit="return false;">
                 <div class="mb-3">
                     <label class="form-label">Add Twitch VOD or Stream</label>
                     <input type="text" id="twitch_vod" placeholder="Twitch Video ID" class="form-control"/>
                 </div>
-                <button class="btn btn-primary">Add Twitch Video</button>
+                <button class="btn btn-primary" onclick="submitTwitchVod()">Add Twitch Video</button>
             </form>
         </div>
         <div class="col-md-6 col">
-            <form onsubmit="submitYoutubeVod(event)" id=ytvod_form">
+            <form id=ytvod_form" onsubmit="return false;">
                 <div class="mb-3">
                     <label class="form-label">Add YouTube VOD or Stream</label>
                     <input type="text" id="youtube_vod" placeholder="YouTube Video ID" class="form-control"/>
                 </div>
-                <button class="btn btn-primary">Add YouTube Video</button>
+                <button onclick="submitYoutubeVod()" class="btn btn-primary">Add YouTube Video</button>
             </form>
         </div>
     </div>
@@ -44,26 +45,7 @@
     </div>
 
     <h3 class="mt-4">Report Control</h3>
-        <div class="row">
-            {% for fight in fights %}
-                {% if fight["encounterID"] != 0 %}
-                    <div class="col-6 col-lg-4">
-                        <div class="card my-2">
-                          <div class="card-body">
-                            <h5 class="card-title">Pull {{ loop.index }}</h5>
-                            <p class="card-text">
-                                <strong>{{encounternames[fight["encounterID"]|string]}}</strong></br>
-                                {{fight["timestampStart"]}} to {{fight["timestampEnd"]}}<br/>
-                            </p>
-                            <form onsubmit="showWipe(event)">
-                                <input hidden type="text" name="wipe" value="{{fight["endTime"]}}">
-                                <button class="btn btn-primary">Show Wipe</button>
-                            </form>
-                          </div>
-                        </div>
-                    </div>
-                {% endif %}
-            {% endfor %}
+        <div id="fights" class="row">
         </div>
     </div>
 </div>
@@ -76,15 +58,52 @@
     videos = {}
     current_player = null
     current_start = null
-
+    encounternames = null
     const start_epoch = parseFloat({{ start_epoch }})
 
     function onYouTubeIframeAPIReady() {}
 
-
-    function submitTwitchVod(event)
+    function loadInitialLog(json_data)
     {
-        event.preventDefault();
+        let data = JSON.parse(json_data)
+        test = data
+        encounternames = data["encounternames"]
+        updateFights(data["fights"])
+
+    }
+
+    function updateFights(fights)
+    {
+        let fighthtml = "";
+        for (let i=0;i<fights.length;i++)
+        {
+            fighthtml += getFightHTML(fights[i])
+        }
+        $("#fights").html(fighthtml)
+        $("#pullno").html(`It contains ${fights.length} pulls.`)
+    }
+
+    function getFightHTML(fight)
+    {
+        return `<div class="col-6 col-lg-4">
+            <div class="card my-2">
+              <div class="card-body">
+                <h5 class="card-title">Fight ${fight["id"]}</h5>
+                <p class="card-text">
+                    <strong>${encounternames[fight["encounterID"]]}</strong></br>
+                    ${fight["timestampStart"]} to ${fight["timestampEnd"]}<br/>
+                </p>
+                <form onsubmit="showWipe(event)">
+                    <input hidden type="text" name="wipe" value="${fight["endTime"]}">
+                    <button class="btn btn-primary">Show Wipe</button>
+                </form>
+              </div>
+            </div>
+        </div>`
+    }
+
+    function submitTwitchVod()
+    {
         let vid_id = $('#twitch_vod').val();
         if(vid_id in videos) return;
         $.ajax({
@@ -109,9 +128,8 @@
          });
     }
 
-    function submitYoutubeVod(event)
+    function submitYoutubeVod()
     {
-        event.preventDefault();
         let vid_id = $('#youtube_vod').val();
         if(vid_id in videos) return;
         $.ajax({
@@ -156,8 +174,6 @@
         {
             current_player.seekTo(pullWipe - current_start)
         }
-
-
     }
 
     function makeStreamPrimary(id)
@@ -218,7 +234,27 @@
           </div>
         </div>`
     }
-    </script>
 
+    function updateLog()
+    {
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: 'json',
+            url: "/ajax/fflogs/report?code=",
+            contentType: "application/json; charset=utf-8",
+            success: function (msg) {
+                let d = new Date(msg['created_at']);
+                videos[msg['id']] = {
+                    'timestamp': d.getTime()/1000,
+                    'player': "youtube"
+                }
+            }
+        })
+    }
+    </script>
+    <script>
+        loadInitialLog("{{ data|safe }}")
+    </script>
 
 {% endblock %}

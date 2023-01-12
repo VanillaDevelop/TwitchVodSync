@@ -1,5 +1,6 @@
 import os
 
+from bson import json_util
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
 from flask_cors import cross_origin
@@ -121,9 +122,11 @@ def report():
     # the user back (this should happen extremely, EXTREMELY rarely if at all since encounter dict calls are rare)
     if dict_status != 200:
         return redirect(url_for("home"))
+    data["encounternames"] = encounternames
 
-    return render_template('report.html', fights=data['fights'],
-                           encounternames=encounternames,
+    del data["_id"]
+
+    return render_template('report.html', data=json_util.dumps(data).replace("\"", "\\\""),
                            start_time=DateUtil.timestamp_to_string(data['startTime']),
                            end_time=DateUtil.timestamp_to_string(data['endTime']),
                            start_epoch=data['startTime'],

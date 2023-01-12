@@ -60,18 +60,17 @@ def find_or_load_report(code: str, fflogs_token: str) -> (int, Optional[dict]):
             if report is not None:
                 report_collection.insert_one(report)
             else:
-                status = 800 # random error code to signify that the report is empty
+                status = 800  # random error code to signify that the report is empty
     return status, report
 
 
 def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> (int, Optional[dict]):
     """
-    Returns the encounter dictionary. Ensures that the encounter ID of all fights provided in the fights parameter
-    properly resolve to a name.
+    Returns the encounter dictionary for the encounter ID of all fights provided in the fights parameter.
     :param fights: The fight list for which the names need to be known.
     :param fflogs_token: The fflogs auth token.
     :return: The query status and the encounter ID mapping dictionary. If the status is 200, this function guarantees
-    all encounter IDs within fights resolve to a name.
+    all non-zero encounter IDs within fights resolve to a name.
     """
     status = 200
     for fight in fights:
@@ -85,4 +84,5 @@ def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> (int, Optional
                                                 upsert=True)
             else:
                 break
-    return status, fflogs_encounters
+    required_keys = set([fight["encounterID"] for fight in fights if fight["encounterID"] != 0])
+    return status, {k: v for k, v in fflogs_encounters.items() if int(k) in required_keys}

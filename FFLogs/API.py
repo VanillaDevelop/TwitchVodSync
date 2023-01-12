@@ -68,6 +68,8 @@ def get_report_data(token, code):
     data = data.json()['data']['reportData']['report']
     # if there is any data (i.e. the report actually exists)
     if data:
+        # remove trash fights
+        data["fights"] = [fight for fight in data["fights"] if fight["encounterID"] != 0]
         # append report ID to data as well as timestamp of acquisition
         data["loaded_at"] = time.time()
         data["code"] = code
