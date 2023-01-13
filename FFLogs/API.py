@@ -33,12 +33,56 @@ def get_username(token):
         return None
 
 
+def try_update_report(token, previous_report):
+    """
+    Try and refresh an existing report with additional data.
+    :param token: The user access token
+    :param previous_report: The previous state of the report.
+    :return: A tuple of (status, data) if successful, otherwise (status, None).
+    """
+    # get basic report
+    status, data = __load_base_report(token, previous_report["code"])
+    if status != 200:
+        return status, previous_report
+    data["player_data"] = previous_report["player_data"]
+    data["deaths"] = previous_report["deaths"]
+    data["last_queried_death_timestamp"] = previous_report["last_queried_death_timestamp"]
+    # update death data
+    if not __append_death_info(token, data):
+        return 800, None
+    # update player data
+    if not __append_player_info(token, data):
+        return 800, None
+    return 200, data
+
+
 def get_report_data(token, code):
     """
     Get info about fights in report
     :param token: The user access token
     :param code: The report code
     :return: A tuple of (status, data) if successful, otherwise (status, None).
+    """
+
+    # get basic report
+    status, data = __load_base_report(token, code)
+    if status != 200:
+        return status, None
+    # append death data
+    if not __append_death_info(token, data):
+        return 800, None
+    # append player data
+    if not __append_player_info(token, data):
+        return 800, None
+    return 200, data
+
+
+def __load_base_report(token, code):
+    """
+    Try to load the basic report structure for a given code.
+    :param token: The fflogs auth token
+    :param code: The report code
+    :return: A tuple of status code, and the report data if the status code is 200.
     """
 
     query = """
@@ -64,26 +108,22 @@ def get_report_data(token, code):
     status, data = __call_client_endpoint(query, token)
     if status != 200:
         return status, None
-
-    data = data.json()['data']['reportData']['report']
-    # if there is any data (i.e. the report actually exists)
-    if data:
-        # remove trash fights
-        data["fights"] = [fight for fight in data["fights"] if fight["encounterID"] != 0]
-        # append report ID to data as well as timestamp of acquisition
-        data["loaded_at"] = time.time()
-        data["code"] = code
-        # add fight start times and end times as formatted timestamps
-        DateUtil.append_timestamps(data["startTime"], data["fights"])
-        # order fights by their end time (latest pull first)
-        data["fights"].sort(key=lambda x: x["endTime"], reverse=True)
-        # append death data
-        if not __append_death_info(token, data):
+    else:
+        # if there is any data (i.e. the report actually exists)
+        data = data.json()['data']['reportData']['report']
+        if data:
+            # remove trash fights
+            data["fights"] = [fight for fight in data["fights"] if fight["encounterID"] != 0]
+            # append report ID to data as well as timestamp of acquisition
+            data["loaded_at"] = time.time()
+            data["code"] = code
+            # add fight start times and end times as formatted timestamps
+            DateUtil.append_timestamps(data["startTime"], data["fights"])
+            # order fights by their end time (latest pull first)
+            data["fights"].sort(key=lambda x: x["endTime"], reverse=True)
+            return 200, data
+        else:
             return 800, None
-        # append player data
-        if not __append_player_info(token, data):
-            return 800, None
-        return 200, data
 
 
 def __append_death_info(token, report_data):
@@ -145,7 +185,7 @@ def __append_death_info(token, report_data):
     if "deaths" not in report_data:
         report_data["deaths"] = deaths
     else:
-        report_data["deaths"].append(deaths)
+        report_data["deaths"] = report_data["deaths"] + deaths
     return True
 
 

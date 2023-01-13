@@ -1,3 +1,4 @@
+import time
 from typing import Optional
 
 from pymongo import MongoClient
@@ -44,12 +45,13 @@ def get_auth_keys(user: str) -> dict:
         return auth
 
 
-def find_or_load_report(code: str, fflogs_token: str) -> (int, Optional[dict]):
+def find_or_load_report(code: str, fflogs_token: str, update: bool = False) -> (int, Optional[dict]):
     """
     Attempt to find a report by code. If it doesn't exist, make one attempt to load it from FFLogs using the provided
     token.
     :param code: The report code.
     :param fflogs_token: The fflogs auth token.
+    :param update: If True, try to refresh the log if it is found in the database.
     :return: A status code, and the report data if it could be found or loaded. Otherwise None.
     """
     report = report_collection.find_one({"code": code})
@@ -61,6 +63,16 @@ def find_or_load_report(code: str, fflogs_token: str) -> (int, Optional[dict]):
                 report_collection.insert_one(report)
             else:
                 status = 800  # random error code to signify that the report is empty
+    else:
+        if update and time.time() - report["loaded_at"] > 2 * 60:
+            old_id = report["_id"]
+            status, report = FFLogs.API.try_update_report(fflogs_token, report)
+            if status == 200:
+                report["_id"] = old_id
+                report_collection.replace_one({"_id": old_id}, report, upsert=True)
+
+    if report and "_id" in report:
+        del report["_id"]
     return status, report
 
 

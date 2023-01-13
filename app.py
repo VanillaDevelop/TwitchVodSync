@@ -124,13 +124,12 @@ def report():
         return redirect(url_for("home"))
     data["encounternames"] = encounternames
 
-    del data["_id"]
-
     return render_template('report.html', data=json_util.dumps(data).replace("\"", "\\\""),
                            start_time=DateUtil.timestamp_to_string(data['startTime']),
                            end_time=DateUtil.timestamp_to_string(data['endTime']),
                            start_epoch=data['startTime'],
                            title=data['title'],
+                           code=request.args.get("code"),
                            auths=session["auths"],
                            username=session["user"])
 

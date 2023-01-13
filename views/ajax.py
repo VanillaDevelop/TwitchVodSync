@@ -119,7 +119,7 @@ def ajax_fflogs_report():
         return "No report code provided.", 400
 
     else:
-        status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"])
+        status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"], update=request.args.get("update"))
         if status == 401:
             # try to refresh the token once if we get 401 (maybe expired)
             refresh_status, refresh_data = FFLogs.auth.try_refresh_fflogs_token(
@@ -133,10 +133,9 @@ def ajax_fflogs_report():
                 session["auths"]["fflogs"]["token"] = refresh_data[0]
                 session["auths"]["fflogs"]["refresh_token"] = refresh_data[1]
                 MongoDB.store_auth_keys(session["user"], session["auths"])
-                status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"])
+                status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"], update=request.args.get("update"))
 
         if status == 200:
-            del data["_id"]
             return json_util.dumps(data)
         else:
             return f"FFLogs API returned {status}.", 400
