@@ -12,7 +12,7 @@
     <span id="pullno"></span><br/>
     <span id="lastupdate"></span>
     <p/>
-    <button class="btn btn-primary">Update Log</button> <br />
+    <button class="btn btn-primary" onclick="updateLog()">Update Log</button> <br />
     <p>
     <small>
         You may update the log once every 2 minutes to scan for new pulls. If you or anyone else has updated this log
@@ -21,7 +21,7 @@
     </small>
     </p>
 
-    <h3>Stream Control</h3>
+    <h3>Stream Overview</h3>
     <div class="row">
         <div class="col-md-6 col-12">
             <form id=twitchvod_form" onsubmit="return false;">
@@ -52,8 +52,34 @@
     <div id="main_stream">
         <p>The main selected stream will appear here.</p>
     </div>
+    <div class="row">
+        <div id="streamcontrol" class="col-12 col-md-6 card p-3">
+            <h4>Stream Control</h4>
+            <p>
+                <h6 class="card-title" id="active-fightid"></h6>
+                <p class="card-text">
+                    <strong id="active-fightname"></strong></br>
+                    <span id="active-start"></span> to <span id="active-end"></span> <span id="active-pulltime"></span>
+                </p>
+            </p>
+            <div class="d-flex">
+                <button id="active-startbtn" class="btn btn-primary me-2 btn-stream-control">Jump to Start</button>
+                <button id="active-endbtn" class="btn btn-primary me-2 btn-stream-control">Jump to Wipe</button>
+            </div>
+            <div class="d-flex my-2">
+                <button class="btn btn-primary me-2 btn-stream-control">Store Custom Offset</button>
+                <input class="form-control input-custom-timestamp me-2" type="number" />
+                <button class="btn btn-primary me-2 btn-stream-control">Jump to Custom</button>
+            </div>
 
-    <h3 class="mt-4">Report Control</h3>
+            <h5 class="mt-3">Pull Specific Events</h5>
+            <small>Deaths up to 10 seconds before the recorded wipe time are discarded.</small>
+            <div id="deaths" class="mt-3">
+            </div>
+        </div>
+    </div>
+
+    <h3 class="mt-4">Report Overview</h3>
         <div id="fights" class="row">
         </div>
     </div>
@@ -65,23 +91,26 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/duration.js"></script>
     <script>
     dayjs.extend(window.dayjs_plugin_relativeTime)
+    dayjs.extend(window.dayjs_plugin_duration)
 
     let videos = {}
     let current_player = null
     let current_start = null
     let encounternames = null
+    let pulldata = null
     const start_epoch = parseFloat({{ start_epoch }})
 
     function onYouTubeIframeAPIReady() {}
 
     function loadLog(json_data)
     {
-        let data = JSON.parse(json_data)
-        encounternames = data["encounternames"]
-        updateFights(data["fights"])
-        $("#lastupdate").html(`Last updated ${dayjs(data["loaded_at"] * 1000).fromNow()} at ${dayjs(data["loaded_at"] * 1000).format()}`)
+        encounternames = json_data["encounternames"]
+        pulldata = json_data
+        updateFights(json_data["fights"])
+        $("#lastupdate").html(`Last updated ${dayjs(json_data["loaded_at"] * 1000).fromNow()} at ${dayjs(json_data["loaded_at"] * 1000).format()}`)
     }
 
     function updateFights(fights)
@@ -105,13 +134,24 @@
                     <strong>${encounternames[fight["encounterID"]]}</strong></br>
                     ${fight["timestampStart"]} to ${fight["timestampEnd"]}<br/>
                 </p>
-                <form onsubmit="showWipe(event)">
-                    <input hidden type="text" name="wipe" value="${fight["endTime"]}">
-                    <button class="btn btn-primary">Show Wipe</button>
-                </form>
+                <div>
+                    <button class="btn btn-primary" onclick="makeActive(${fight["id"]})">Make Active</button>
+                </div>
               </div>
             </div>
         </div>`
+
+        //<input hidden type="text" name="wipe" value="${fight["endTime"]}">
+    }
+
+    function getDeathHTML(pull_start, death, player_data)
+    {
+        return `<p class="align-items-center d-flex">
+                <strong class="me-1">Death (${player_data[death["targetID"]]["name"]}) </strong> at ${dayjs.duration(death["timestamp"] - pull_start).format('mm:ss')}
+                <button class="btn btn-primary ms-2" onclick="jumpTo(${death['timestamp']})">Jump to</button>
+                </p>`
+
+        //<input hidden type="text" name="wipe" value="${fight["endTime"]}">
     }
 
     function submitTwitchVod()
@@ -166,26 +206,49 @@
          });
     }
 
-    function showWipe(event)
+    function jumpTo(timestamp)
     {
-        event.preventDefault();
-
         if(current_player == null)
             return
 
-        let formData = new FormData(event.target);
-        let timestamp = parseFloat(formData.get('wipe'))
-        let pullWipe = (start_epoch + timestamp)/1000 - 10; //epoch timestamp (seconds) of 10 seconds before wipe
+        let timer = (start_epoch + timestamp)/1000 - 12;
 
         if(current_player.constructor.name === "r")
         {
             //twitch player. don't ask me why.
-            current_player.seek(pullWipe - current_start)
+            current_player.seek(timer - current_start)
         }
         else
         {
-            current_player.seekTo(pullWipe - current_start)
+            current_player.seekTo(timer - current_start)
         }
+
+        document.getElementById("main_stream").scrollIntoView();
+    }
+
+    function makeActive(id)
+    {
+        let pull = pulldata["fights"].find(element => element["id"] === id)
+        if(!pull)
+            return
+        let deaths = pulldata["deaths"].filter(element => element["timestamp"] > pull["startTime"] && element["timestamp"] < pull["endTime"] - 10000)
+
+        $("#active-fightid").html(`Fight ${pull["id"]}`)
+        $("#active-fightname").html(encounternames[parseInt(pull["encounterID"])])
+        $("#active-start").html(pull["timestampStart"])
+        $("#active-end").html(pull["timestampEnd"])
+
+        let deathhtml = ""
+        for (let i=0;i<deaths.length;i++)
+        {
+            deathhtml += getDeathHTML(pull["startTime"], deaths[i], pulldata["player_data"])
+        }
+        $("#deaths").html(deathhtml)
+
+        $("#active-startbtn").click(function() { jumpTo(pull["startTime"]) })
+        $("#active-endbtn").click(function() { jumpTo(pull["endTime"]) })
+
+        document.getElementById("streamcontrol").scrollIntoView();
     }
 
     function makeStreamPrimary(id)
@@ -256,17 +319,13 @@
             url: "/ajax/fflogs/report?code={{ code }}&update=True",
             contentType: "application/json; charset=utf-8",
             success: function (msg) {
-                let d = new Date(msg['created_at']);
-                videos[msg['id']] = {
-                    'timestamp': d.getTime()/1000,
-                    'player': "youtube"
-                }
+                loadLog(msg)
             }
         })
     }
     </script>
     <script>
-        loadLog("{{ data|safe }}")
+        loadLog(JSON.parse("{{ data|safe }}"))
     </script>
 
 {% endblock %}

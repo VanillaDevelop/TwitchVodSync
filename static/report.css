@@ -1,4 +1,14 @@
 .stream
 {
-    min-height:150px;
+    min-height:175px;
+}
+
+.btn-stream-control
+{
+    width: 175px;
+}
+
+.input-custom-timestamp
+{
+    width: 175px;
 }

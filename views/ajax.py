@@ -136,6 +136,11 @@ def ajax_fflogs_report():
                 status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"], update=request.args.get("update"))
 
         if status == 200:
-            return json_util.dumps(data)
+            status, encnames = MongoDB.get_filled_encounter_dict(data["fights"], session["auths"]["fflogs"]["token"])
+            if status == 200:
+                data["encounternames"] = encnames
+                return json_util.dumps(data)
+            else:
+                return f"FFLogs API returned {status}.", 400
         else:
             return f"FFLogs API returned {status}.", 400
