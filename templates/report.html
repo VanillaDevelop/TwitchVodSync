@@ -283,6 +283,14 @@
         if(!(id in videos))
             return;
 
+
+
+        let start_seconds = 0
+        if(current_player)
+        {
+            start_seconds = current_player.getCurrentTime() + current_start - videos[id]['timestamp']
+        }
+
         current_video_id = id
         current_start = videos[id]['timestamp']
 
@@ -293,6 +301,7 @@
                     width: "100%",
                     height: "100%",
                     video: id,
+                    time: dayjs.duration(start_seconds*1000).format('HH[h]mm[m]ss[s]')
                 };
                 current_player = new Twitch.Player("main_stream", options);
                 player.setVolume(0.5);
@@ -304,7 +313,8 @@
                       videoId: id,
                       playerVars: {
                         'playsinline': 1,
-                        'autoplay': 1
+                        'autoplay': 1,
+                        'start': Math.round(start_seconds),
                       },
                     });
 
