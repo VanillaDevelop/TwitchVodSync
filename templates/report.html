@@ -72,37 +72,39 @@
     </div>
 
     <h3 class="mt-4">Stream View</h3>
-    <div id="main_stream">
-        <p>The main selected stream will appear here.</p>
-    </div>
     <div class="row">
-        <div id="streamcontrol" class="col-12 col-md-6 card p-3">
-            <h4>Stream Control</h4>
-            <p>
-                <h6 class="card-title" id="active-fightid"></h6>
-                <p class="card-text">
-                    <strong id="active-fightname"></strong></br>
-                    <span id="active-start"></span> to <span id="active-end"></span> <span id="active-pulltime"></span>
-                </p>
-            </p>
-            <div class="d-flex">
-                <button id="active-startbtn" class="btn btn-primary me-2 btn-stream-control">Jump to Start</button>
-                <button id="active-endbtn" class="btn btn-primary me-2 btn-stream-control">Jump to Wipe</button>
-            </div>
-            <div class="d-flex mt-2">
-                <button class="btn btn-primary me-2 btn-stream-control" onclick="storeCustom()">Store Custom Offset</button>
-                <input id="customtimestamp" class="form-control me-2 input-custom-timestamp" type="number" />
-                <button class="btn btn-primary me-2 btn-stream-control" onclick="loadCustom()">Jump to Custom</button>
-            </div>
-            <div class="d-flex mt-2">
-                <button type="button" class="btn btn-danger me-2 btn-stream-control" data-bs-toggle="modal" data-bs-target="#overrideStartModal">
-                Override Pull Start
-                </button>
-            </div>
+        <div id="main_stream" class="col-8">
+            <p>The main selected stream will appear here.</p>
+        </div>
+        <div id="streamcontrol" class="col-4 card p-3">
+                <h4>Stream Control</h4>
+                <p>
+                    <h6 class="card-title" id="active-fightid"></h6>
+                    <p class="card-text">
+                        <strong id="active-fightname"></strong></br>
+                        <span id="active-start"></span> to <span id="active-end"></span> <span id="active-pulltime"></span><br />
+                        <strong>Duration: </strong><span id="active-duration"></span>
 
-            <h5 class="mt-3">Pull Specific Events</h5>
-            <small>Deaths up to 10 seconds before the recorded wipe time are discarded.</small>
-            <div id="deaths" class="mt-3">
+                    </p>
+                </p>
+                <div class="d-flex">
+                    <button id="active-startbtn" class="btn btn-primary me-2 btn-stream-control">Jump to Start</button>
+                    <button id="active-endbtn" class="btn btn-primary me-2 btn-stream-control">Jump to End</button>
+                </div>
+                <div class="d-flex mt-2">
+                    <button class="btn btn-primary me-2 btn-stream-control" onclick="storeCustom()">Store Custom Offset</button>
+                    <button class="btn btn-primary me-2 btn-stream-control" onclick="loadCustom()">Jump to Custom</button>
+                </div>
+                <div class="d-flex mt-2">
+                    <input id="customtimestamp" class="form-control input-custom-timestamp me-2" type="number" />
+                    <button type="button" class="btn btn-danger btn-stream-control" data-bs-toggle="modal" data-bs-target="#overrideStartModal">
+                    Override Pull Start
+                    </button>
+                </div>
+
+                <h5 class="mt-3">Pull-Specific Events</h5>
+                <small>Deaths up to 10 seconds before the recorded wipe time are discarded.</small>
+                <div id="deaths" class="mt-3">
             </div>
         </div>
     </div>
@@ -156,32 +158,22 @@
 
     function getFightHTML(fight)
     {
-        return `<div class="col-6 col-lg-4">
-            <div class="card my-2">
+        return `<div class="col-3 col-xl-2 p-1 pull" onclick="makeActive(${fight["id"]})">
+            <div id="pull-${fight["id"]}" class="card m-1">
               <div class="card-body">
-                <h5 class="card-title">Fight ${fight["id"]}</h5>
+                <small class="card-title">Fight ${fight["id"]}</small>
                 <p class="card-text">
                     <strong>${encounternames[fight["encounterID"]]}</strong></br>
-                    ${fight["timestampStart"]} to ${fight["timestampEnd"]}<br/>
+                    ${fight["timestampStart"]} (${dayjs.duration(fight["endTime"] - fight["startTime"]).format('mm:ss')})
                 </p>
-                <div>
-                    <button class="btn btn-primary" onclick="makeActive(${fight["id"]})">Make Active</button>
-                </div>
               </div>
             </div>
         </div>`
-
-        //<input hidden type="text" name="wipe" value="${fight["endTime"]}">
     }
 
     function getDeathHTML(pull_start, death, player_data)
     {
-        return `<p class="align-items-center d-flex">
-                <strong class="me-1">Death (${player_data[death["targetID"]]["name"]}) </strong> at ${dayjs.duration(death["timestamp"] - pull_start).format('mm:ss')}
-                <button class="btn btn-primary ms-2" onclick="jumpTo(${death['timestamp']})">Jump to</button>
-                </p>`
-
-        //<input hidden type="text" name="wipe" value="${fight["endTime"]}">
+        return `<a class="deathlink me-2" href="javascript:jumpTo(${death['timestamp']})"><strong class="me-1">Death (${player_data[death["targetID"]]["name"]}) </strong> at ${dayjs.duration(death["timestamp"] - pull_start).format('mm:ss')}</a></br>`
     }
 
     function submitTwitchVod()
@@ -263,10 +255,14 @@
             return
         let deaths = pulldata["deaths"].filter(element => element["timestamp"] > pull["startTime"] && element["timestamp"] < pull["endTime"] - 10000)
 
+        Array.from(document.querySelectorAll('.pull-active')).forEach((el) => el.classList.remove('pull-active'));
+        $(`#pull-${id}`).addClass("pull-active")
+
         $("#active-fightid").html(`Fight ${pull["id"]}`)
         $("#active-fightname").html(encounternames[parseInt(pull["encounterID"])])
         $("#active-start").html(pull["timestampStart"])
         $("#active-end").html(pull["timestampEnd"])
+        $("#active-duration").html(dayjs.duration(pull["endTime"] - pull["startTime"]).format('mm:ss'))
 
         let deathhtml = ""
         for (let i=0;i<deaths.length;i++)
@@ -294,8 +290,8 @@
         {
                 $("#main_stream").html("")
                 var options = {
-                    width: 1080,
-                    height: 720,
+                    width: "100%",
+                    height: "100%",
                     video: id,
                 };
                 current_player = new Twitch.Player("main_stream", options);
@@ -305,8 +301,6 @@
         {
             $("#main_stream").html("<div id=\"yt_embed\"></div>")
             current_player = new YT.Player('yt_embed', {
-                      height: '720',
-                      width: '1080',
                       videoId: id,
                       playerVars: {
                         'playsinline': 1,
@@ -350,7 +344,7 @@
             let expected = (start_epoch + current_pull_start)/1000
             let real = current_start + current_player.getCurrentTime()
 
-            current_start = current_start + (expected - real - 12)
+            current_start = current_start + (expected - real)
             videos[current_video_id]["timestamp"] = current_start
         }
     }

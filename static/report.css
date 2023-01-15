@@ -12,3 +12,46 @@
 {
     width: 175px;
 }
+
+.deathlink
+{
+ color:  #5D3938;
+}
+
+.pull
+{
+    cursor: pointer;
+}
+
+.pull-active
+{
+    background-color: #dfdfdf;
+}
+
+.main-stream {
+        position: relative;
+        padding-bottom: 56.25%;
+        overflow: hidden;
+        max-width: 100%;
+        height: auto;
+}
+
+#yt_embed {
+    width:100%;
+    height:100%;
+}
+
+.main-stream iframe,
+.main-stream object,
+.main-stream embed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+}
+
+#streamcontrol
+{
+    min-height: 600px;
+}
