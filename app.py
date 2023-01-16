@@ -1,13 +1,11 @@
 import os
-
-from bson import json_util
 from dotenv import load_dotenv
+from bson import json_util
 from flask import Flask, render_template, redirect, url_for, session, request
 from flask_cors import cross_origin
 from flask_session import Session
 from google.auth.transport import requests as google_auth_request
 from google.oauth2 import id_token
-
 import FFLogs.DateUtil as DateUtil
 import FFLogs.auth
 from DocStore import MongoDB
@@ -17,6 +15,7 @@ from views.twitch import twitch_routes
 from views.youtube import youtube_routes
 
 load_dotenv()
+
 app = Flask(__name__)
 host_url = os.getenv("HOST_URL")
 google_id = os.getenv("GOOGLE_CLIENT_ID")

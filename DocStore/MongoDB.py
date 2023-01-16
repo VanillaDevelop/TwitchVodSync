@@ -1,3 +1,4 @@
+import base64
 import time
 from typing import Optional
 
@@ -8,6 +9,10 @@ from dotenv import load_dotenv
 import FFLogs.API
 
 load_dotenv()
+
+with open("A:/Code/TwitchVodSync/cert.pem", "w") as f:
+    print(os.path.realpath(f.name))
+    f.write(base64.b64decode(os.getenv("CERTFILE")).decode("utf-8"))
 
 client = MongoClient(host=os.getenv("MONGODB_URI"), tls=True, tlsCertificateKeyFile=os.getenv("MONGODB_CERT"))
 db = client.VodSync
