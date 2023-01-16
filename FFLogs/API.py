@@ -33,15 +33,16 @@ def get_username(token):
         return None
 
 
-def try_update_report(token, previous_report):
+def try_update_report(token, previous_report, unknown=False):
     """
     Try and refresh an existing report with additional data.
     :param token: The user access token
     :param previous_report: The previous state of the report.
+    :param unknown: Whether to keep or dismiss encounters with ID 0.
     :return: A tuple of (status, data) if successful, otherwise (status, None).
     """
     # get basic report
-    status, data = __load_base_report(token, previous_report["code"])
+    status, data = __load_base_report(token, previous_report["code"], unknown)
     if status != 200:
         return status, previous_report
     data["player_data"] = previous_report["player_data"]
@@ -77,11 +78,12 @@ def get_report_data(token, code):
     return 200, data
 
 
-def __load_base_report(token, code):
+def __load_base_report(token, code, unknown=False):
     """
     Try to load the basic report structure for a given code.
     :param token: The fflogs auth token
     :param code: The report code
+    :param unknown: Whether to keep or dismiss encounters with ID 0.
     :return: A tuple of status code, and the report data if the status code is 200.
     """
 
@@ -112,8 +114,9 @@ def __load_base_report(token, code):
         # if there is any data (i.e. the report actually exists)
         data = data.json()['data']['reportData']['report']
         if data:
-            # remove trash fights
-            data["fights"] = [fight for fight in data["fights"] if fight["encounterID"] != 0]
+            # remove trash fights unless unknown fights should be included
+            if not unknown:
+                data["fights"] = [fight for fight in data["fights"] if fight["encounterID"] != 0]
             # append report ID to data as well as timestamp of acquisition
             data["loaded_at"] = time.time()
             data["code"] = code
@@ -133,6 +136,11 @@ def __append_death_info(token, report_data):
     :param report_data: The report data (collected by the get_report_data function)
     :return: True if successful, false if not. If true, the death data is appended to report_data.
     """
+
+    if len(report_data["fights"]) == 0:
+        report_data["deaths"] = []
+        report_data["last_queried_death_timestamp"] = 0
+        return True
 
     # if we already queried for previous pulls, we can get it from the report data
     if "last_queried_death_timestamp" in report_data:
@@ -201,6 +209,10 @@ def __append_player_info(token, report_data):
     if "deaths" not in report_data:
         return False
 
+    if len(report_data["deaths"]) == 0:
+        report_data["player_data"] = {}
+        return True
+
     # get the time range
     end_time = int(report_data["fights"][0]["endTime"])
     start_time = int(report_data["fights"][-1]["startTime"])
@@ -242,7 +254,9 @@ def __append_player_info(token, report_data):
 
     # sanity check (should always be false? maybe if the API fails)
     if len([pid for pid in pids if str(pid) not in player_data]) != 0:
-        return False
+        # I think here we just place an unknown player? Not really worth returning failure over
+        player_data = player_data | {pid: {"name": "Unknown", "class": "Unknown"}
+                                     for pid in pids if str(pid) not in player_data}
 
     # append data
     report_data["player_data"] = player_data
@@ -270,7 +284,12 @@ def query_for_encounter_name(token, eid):
     """
     status, data = __call_client_endpoint(query, token)
     if status == 200:
-        return 200, data.json()['data']['worldData']['encounter']['name']
+        try:
+            name = data.json()['data']['worldData']['encounter']['name']
+            return 200, name
+        except (TypeError, KeyError):
+            # If we get 200 but the zone isn't in the data, just place it as unknown zone.
+            return 200, "Unknown Zone"
     else:
         return status, None
 

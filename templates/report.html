@@ -6,11 +6,11 @@
 
 {% block content %}
 <!-- Modals -->
-<div class="modal fade" id="overrideStartModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="overrideStartModal" tabindex="-1" aria-labelledby="overrideModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Confirm Override</h5>
+        <h5 class="modal-title" id="overrideModalLabel">Confirm Override</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -28,6 +28,53 @@
   </div>
 </div>
 
+<div class="modal fade" id="updateUnknownModal" tabindex="-1" aria-labelledby="updateUnknownLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="updateUnknownLabel">Confirm Update With Unknown Encounters</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Updating the log with unknown encounters will pull and display all fight and death data for encounters
+        which are not assigned an specific encounter ID. This may be helpful if a fight has not been assigned
+        an encounter ID by FFLogs yet or if you want to sync streams according to trash pulls. However, if your name is
+        Miyuki Unryuu and you do 30 S-rank hunts before the raid then this will spam the log and kill the API rate so
+        please act responsibly thank you.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No thanks.</button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="updateLogWithUnknown()">
+        Update with Unknown
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="importStreamModal" tabindex="-1" aria-labelledby="importStreamLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importStreamLabel">Import / Export Stream List</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <textarea id="import-streams" class="form-control" rows="3" placeholder="Use the export streams button to put data here, or paste an existing string."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="setStreamListImportString()">
+        Export Current Streams
+        </button>
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="importStreamList()">
+        Import String
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="container mt-5">
     <h3>Report Info</h3>
     <h5><strong>Report:</strong> {{ title }}</h5>
@@ -35,7 +82,13 @@
     <span id="pullno"></span><br/>
     <span id="lastupdate"></span>
     <p/>
-    <button class="btn btn-primary" onclick="updateLog()">Update Log</button> <br />
+    <button class="btn btn-primary me-2" onclick="updateLog()">Update Log</button>
+    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#updateUnknownModal">
+        Update Log With Unknown Encounters
+    </button>
+    <button type="button" class="btn btn-danger btn-stream-control" data-bs-toggle="modal" data-bs-target="#importStreamModal">
+        Import Stream List
+    </button>
     <p>
     <small>
         You may update the log once every 2 minutes to scan for new pulls. If you or anyone else has updated this log
@@ -180,17 +233,27 @@
     {
         let vid_id = $('#twitch_vod').val();
         if(vid_id in videos) return;
+        addTwitchStream(vid_id)
+    }
+
+    function addTwitchStream(id, timestamp=-1)
+    {
         $.ajax({
             async: true,
             type: "GET",
             dataType: 'json',
-            url: "/ajax/twitch/vod?id=" + vid_id,
+            url: "/ajax/twitch/vod?id=" + id,
             contentType: "application/json; charset=utf-8",
             success: function (msg) {
                 let d = new Date(msg['created_at']);
                 videos[msg['id']] = {
                     'timestamp': d.getTime()/1000,
                     'player': "twitch"
+                }
+
+                if(timestamp !== -1)
+                {
+                    videos[msg['id']]["timestamp"] = timestamp
                 }
 
                 let newNode = document.createElement('div')
@@ -206,17 +269,27 @@
     {
         let vid_id = $('#youtube_vod').val();
         if(vid_id in videos) return;
+        addYoutubeStream(vid_id)
+    }
+
+    function addYoutubeStream(id, timestamp=-1)
+    {
         $.ajax({
             async: true,
             type: "GET",
             dataType: 'json',
-            url: "/ajax/youtube/vod?id=" + vid_id,
+            url: "/ajax/youtube/vod?id=" + id,
             contentType: "application/json; charset=utf-8",
             success: function (msg) {
                 let d = new Date(msg['created_at']);
                 videos[msg['id']] = {
                     'timestamp': d.getTime()/1000,
                     'player': "youtube"
+                }
+
+                if(timestamp !== -1)
+                {
+                    videos[msg['id']]["timestamp"] = timestamp
                 }
 
                 let newNode = document.createElement('div')
@@ -388,6 +461,44 @@
                 loadLog(msg)
             }
         })
+    }
+
+    function updateLogWithUnknown()
+    {
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: 'json',
+            url: "/ajax/fflogs/report?code={{ code }}&update=True&unknown=True",
+            contentType: "application/json; charset=utf-8",
+            success: function (msg) {
+                loadLog(msg)
+            }
+        })
+    }
+
+    function setStreamListImportString()
+    {
+        $("#import-streams").val(JSON.stringify(videos))
+    }
+
+    function importStreamList()
+    {
+        let videolist = JSON.parse($("#import-streams").val())
+        for (const [key, value] of Object.entries(videolist))
+        {
+            if(!(key in videos))
+            {
+                if(value["player"] === "youtube")
+                {
+                    addYoutubeStream(key, value["timestamp"])
+                }
+                else if(value["player"] === "twitch")
+                {
+                    addTwitchStream(key, value["timestamp"])
+                }
+            }
+        }
     }
     </script>
     <script>

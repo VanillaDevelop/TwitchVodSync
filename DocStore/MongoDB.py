@@ -45,13 +45,14 @@ def get_auth_keys(user: str) -> dict:
         return auth
 
 
-def find_or_load_report(code: str, fflogs_token: str, update: bool = False) -> (int, Optional[dict]):
+def find_or_load_report(code: str, fflogs_token: str, update: bool = False, unknown: bool = False) -> (int, Optional[dict]):
     """
     Attempt to find a report by code. If it doesn't exist, make one attempt to load it from FFLogs using the provided
     token.
     :param code: The report code.
     :param fflogs_token: The fflogs auth token.
     :param update: If True, try to refresh the log if it is found in the database.
+    :param unknown: Whether to include unknown encounters (ID=0). Only on update from database.
     :return: A status code, and the report data if it could be found or loaded. Otherwise None.
     """
     report = report_collection.find_one({"code": code})
@@ -66,7 +67,7 @@ def find_or_load_report(code: str, fflogs_token: str, update: bool = False) -> (
     else:
         if update and time.time() - report["loaded_at"] > 2 * 60:
             old_id = report["_id"]
-            status, report = FFLogs.API.try_update_report(fflogs_token, report)
+            status, report = FFLogs.API.try_update_report(fflogs_token, report, unknown=unknown)
             if status == 200:
                 report["_id"] = old_id
                 report_collection.replace_one({"_id": old_id}, report, upsert=True)
@@ -87,7 +88,10 @@ def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> (int, Optional
     status = 200
     for fight in fights:
         eid = fight["encounterID"]
-        if str(eid) not in fflogs_encounters and eid != 0:
+        if str(eid) not in fflogs_encounters:
+            if str(eid) == "0":
+                fflogs_encounters["0"] = "Undefined Zone"
+                continue
             status, name = FFLogs.API.query_for_encounter_name(fflogs_token, eid)
             if status == 200:
                 fflogs_encounters[str(eid)] = name
@@ -96,5 +100,5 @@ def get_filled_encounter_dict(fights: dict, fflogs_token: str) -> (int, Optional
                                                 upsert=True)
             else:
                 break
-    required_keys = set([fight["encounterID"] for fight in fights if fight["encounterID"] != 0])
+    required_keys = set([fight["encounterID"] for fight in fights])
     return status, {k: v for k, v in fflogs_encounters.items() if int(k) in required_keys}
