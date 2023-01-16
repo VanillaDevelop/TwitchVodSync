@@ -195,7 +195,15 @@
         encounternames = json_data["encounternames"]
         pulldata = json_data
         updateFights(json_data["fights"])
-        $("#lastupdate").html(`Last updated ${dayjs(json_data["loaded_at"] * 1000).fromNow()} at ${dayjs(json_data["loaded_at"] * 1000).format()}`)
+        updateLastUpdatedTimer()
+    }
+
+    function updateLastUpdatedTimer()
+    {
+        if(pulldata && "loaded_at" in pulldata)
+        {
+            $("#lastupdate").html(`Last updated ${dayjs(pulldata["loaded_at"] * 1000).fromNow()} at ${dayjs(pulldata["loaded_at"] * 1000).format()}`)
+        }
     }
 
     function updateFights(fights)
@@ -503,6 +511,10 @@
     </script>
     <script>
         loadLog(JSON.parse("{{ data|safe }}"))
+
+        setInterval(function() {
+          updateLastUpdatedTimer()
+        }, 30000);
     </script>
 
 {% endblock %}
