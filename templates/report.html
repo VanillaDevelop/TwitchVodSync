@@ -127,7 +127,7 @@
     <h3 class="mt-4">Stream View</h3>
     <div class="row">
         <div id="main_stream" class="col-8">
-            <p>The main selected stream will appear here.</p>
+            <p id="main-stream-warning">The main selected stream will appear here.</p>
         </div>
         <div id="streamcontrol" class="col-4 card p-3">
                 <h4>Stream Control</h4>
@@ -239,7 +239,9 @@
 
     function submitTwitchVod()
     {
-        let vid_id = $('#twitch_vod').val();
+        let input_element = $("#twitch_vod")
+        let vid_id = input_element.val();
+        input_element.val("")
         if(vid_id in videos) return;
         addTwitchStream(vid_id)
     }
@@ -275,7 +277,9 @@
 
     function submitYoutubeVod()
     {
-        let vid_id = $('#youtube_vod').val();
+        let input_element = $('#youtube_vod')
+        let vid_id = input_element.val();
+        input_element.val("")
         if(vid_id in videos) return;
         addYoutubeStream(vid_id)
     }
@@ -364,41 +368,79 @@
         if(!(id in videos))
             return;
 
-
+        $("#main-stream-warning").hide()
 
         let start_seconds = 0
+        //if we already have a player
         if(current_player)
         {
+            //get the current real time of the player so we can sync it to the new player
             start_seconds = current_player.getCurrentTime() + current_start - videos[id]['timestamp']
+            //pause the current player
+            if(current_player.constructor.name === "r")
+            {
+                current_player.pause()
+            }
+            else
+            {
+                current_player.pauseVideo()
+            }
+            //hide the current player
+            $(`#player-${current_video_id}`).hide()
         }
 
+        //set the current video id and start variables
         current_video_id = id
         current_start = videos[id]['timestamp']
 
-        if(videos[id]['player'] === "twitch")
+        //create a new player if we don't have one yet
+        if(!("player_element" in videos[id]))
         {
-                $("#main_stream").html("")
-                var options = {
-                    width: "100%",
-                    height: "100%",
-                    video: id,
-                    time: dayjs.duration(start_seconds*1000).format('HH[h]mm[m]ss[s]')
-                };
-                current_player = new Twitch.Player("main_stream", options);
-                player.setVolume(0.5);
+            jQuery('<div>', {
+                id: `player-${id}`,
+                class: 'stream',
+            }).appendTo('#main_stream');
+
+            if(videos[id]['player'] === "twitch")
+            {
+                    var options = {
+                        width: "100%",
+                        height: "100%",
+                        video: id,
+                        time: dayjs.duration(start_seconds*1000).format('HH[h]mm[m]ss[s]')
+                    };
+                    current_player = new Twitch.Player(`player-${id}`, options);
+                    videos[id]['player_element'] = current_player
+            }
+            else
+            {
+                $(`#player-${id}`).html(`<div id="yt_embed_${id}" class="yt_embed"></div>`)
+                current_player = new YT.Player(`yt_embed_${id}`, {
+                          videoId: id,
+                          playerVars: {
+                            'playsinline': 1,
+                            'autoplay': 1,
+                            'start': Math.round(start_seconds),
+                          },
+                        });
+                videos[id]['player_element'] = current_player
+            }
         }
         else
         {
-            $("#main_stream").html("<div id=\"yt_embed\"></div>")
-            current_player = new YT.Player('yt_embed', {
-                      videoId: id,
-                      playerVars: {
-                        'playsinline': 1,
-                        'autoplay': 1,
-                        'start': Math.round(start_seconds),
-                      },
-                    });
-
+            //if we already have a player, just show it and play the video
+            $(`#player-${id}`).show()
+            current_player = videos[id]['player_element']
+            if(videos[id]['player'] === "twitch")
+            {
+                current_player.seek(start_seconds)
+                current_player.play()
+            }
+            else
+            {
+                current_player.seekTo(start_seconds)
+                current_player.playVideo()
+            }
         }
     }
 
@@ -407,9 +449,12 @@
         if(!(id in videos))
             return;
 
-        delete videos[id];
-
+        //remove the stream element
         $(`#stream${id}`).remove()
+        //remove the player element
+        $(`#player-${id}`).remove()
+
+        delete videos[id];
 
     }
 
