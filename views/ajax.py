@@ -1,15 +1,14 @@
-import json
 import os
 
 import requests
 from bson import json_util
 from dotenv import load_dotenv
-from flask import session, request, Blueprint
+from flask import session, request, Blueprint, current_app
 
 import FFLogs.auth
 import Twitch.auth
 import YouTube.auth
-from DocStore import MongoDB
+from DocStore.MongoDB import MongoDBConnection
 
 load_dotenv()
 ajax_routes = Blueprint('ajax', __name__)
@@ -39,12 +38,12 @@ def ajax_vod_twitch():
             if refresh_status != 200:
                 # jank auth, reset and redirect
                 del session["auths"]["twitch"]
-                MongoDB.store_auth_keys(session["user"], session["auths"])
+                current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
                 return "Authorization Issue", 401
             else:
                 session["auths"]["twitch"]["token"] = refresh_data[0]
                 session["auths"]["twitch"]["refresh_token"] = refresh_data[1]
-                MongoDB.store_auth_keys(session["user"], session["auths"])
+                current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
                 r = requests.get(f"https://api.twitch.tv/helix/videos?id={video_id}",
                                  headers={"Authorization": f"Bearer {session['auths']['twitch']['token']}",
                                           "Client-Id": twitch_client_id})
@@ -84,12 +83,12 @@ def ajax_vod_youtube():
             if refresh_status != 200:
                 # jank auth, reset and redirect
                 del session["auths"]["youtube"]
-                MongoDB.store_auth_keys(session["user"], session["auths"])
+                current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
                 return "Authorization Issue", 401
             else:
                 session["auths"]["youtube"]["token"] = refresh_data[0]
                 session["auths"]["youtube"]["refresh_token"] = refresh_data[1]
-                MongoDB.store_auth_keys(session["user"], session["auths"])
+                current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
                 r = requests.get(f"https://www.googleapis.com/youtube/v3/videos?part=snippet&id={video_id}",
                                  headers={"Authorization": f"Bearer {session['auths']['youtube']['token']}"})
 
@@ -119,7 +118,12 @@ def ajax_fflogs_report():
         return "No report code provided.", 400
 
     else:
-        status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"], update=request.args.get("update"), unknown=request.args.get("unknown"))
+        status, data = current_app.config["MONGO_CLIENT"].find_or_load_report(report,
+                                                                              session["auths"]["fflogs"]["token"],
+                                                                              update=request.args.get(
+                                                                                  "update") == "True",
+                                                                              unknown=request.args.get(
+                                                                                  "unknown") == "True")
         if status == 401:
             # try to refresh the token once if we get 401 (maybe expired)
             refresh_status, refresh_data = FFLogs.auth.try_refresh_fflogs_token(
@@ -127,20 +131,21 @@ def ajax_fflogs_report():
             if refresh_status != 200:
                 # jank auth, reset and redirect
                 del session["auths"]["fflogs"]
-                MongoDB.store_auth_keys(session["user"], session["auths"])
+                current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
                 return "Authorization Issue", 401
             else:
                 session["auths"]["fflogs"]["token"] = refresh_data[0]
                 session["auths"]["fflogs"]["refresh_token"] = refresh_data[1]
-                MongoDB.store_auth_keys(session["user"], session["auths"])
-                status, data = MongoDB.find_or_load_report(report, session["auths"]["fflogs"]["token"], update=request.args.get("update"), unknown=request.args.get("unknown"))
+                current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
+                status, data = current_app.config["MONGO_CLIENT"].find_or_load_report(report,
+                                                                                      session["auths"]["fflogs"][
+                                                                                          "token"],
+                                                                                      update=request.args.get(
+                                                                                          "update") == "True",
+                                                                                      unknown=request.args.get(
+                                                                                          "update") == "True")
 
         if status == 200:
-            status, encnames = MongoDB.get_filled_encounter_dict(data["fights"], session["auths"]["fflogs"]["token"])
-            if status == 200:
-                data["encounternames"] = encnames
-                return json_util.dumps(data)
-            else:
-                return f"FFLogs API returned {status}.", 400
+            return json_util.dumps(data)
         else:
             return f"FFLogs API returned {status}.", 400

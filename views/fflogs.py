@@ -2,9 +2,8 @@ import os
 import uuid
 import pkce
 from dotenv import load_dotenv
-from flask import redirect, url_for, session, request, Blueprint
+from flask import redirect, url_for, session, request, Blueprint, current_app
 import FFLogs.API as FFLogsAPI
-from DocStore.MongoDB import store_auth_keys
 from FFLogs import auth
 
 load_dotenv()
@@ -63,7 +62,7 @@ def auth_verify():
                 "uid": userdata["id"],
                 "refresh_token": data[1]
             }
-            store_auth_keys(session["user"], session["auths"])
+            current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
 
     return redirect(url_for('home'))
 
@@ -96,7 +95,7 @@ async def auth_refresh():
         # same here
         del session["auths"]["fflogs"]
 
-    store_auth_keys(session["user"], session["auths"])
+    current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
     return redirect(host_url + url_for("home"))
 
 
@@ -105,5 +104,5 @@ def auth_signout():
     # signout from FFLogs session => delete the data stored by the FFLogs auth flow, then return home
     if "user" in session and "auths" in session and "fflogs" in session["auths"]:
         del session["auths"]["fflogs"]
-        store_auth_keys(session["user"], session["auths"])
+        current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
     return redirect(url_for('home'))

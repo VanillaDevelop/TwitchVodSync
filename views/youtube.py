@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
-from flask import redirect, url_for, session, request, Blueprint
-from DocStore.MongoDB import store_auth_keys
+from flask import redirect, url_for, session, request, Blueprint, current_app
+from DocStore.MongoDB import MongoDBConnection
 from YouTube import auth
 
 load_dotenv()
@@ -13,9 +13,9 @@ client_id = os.getenv("YOUTUBE_ID")
 
 @youtube_routes.route('/auth/youtube/challenge', methods=['POST'])
 def auth_challenge():
-    # when button to start youtube auth flow is clicked
+    # when button to start YouTube auth flow is clicked
 
-    # call youtube auth url with state
+    # call YouTube auth url with state
     url = f"""https://accounts.google.com/o/oauth2/auth?""" \
           f"""client_id={client_id}""" \
           f"""&response_type=code""" \
@@ -47,7 +47,7 @@ def auth_verify():
                 "refresh_token": data[1],
                 "username": name
             }
-            store_auth_keys(session["user"], session["auths"])
+            current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
 
     return redirect(url_for('home'))
 
@@ -57,7 +57,7 @@ def auth_signout():
     # signout from youtube session => delete the data stored by the twitch auth flow, then return home
     if "user" in session and "auths" in session and "youtube" in session["auths"]:
         del session["auths"]["youtube"]
-        store_auth_keys(session["user"], session["auths"])
+        current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
     return redirect(url_for('home'))
 
 
@@ -85,5 +85,5 @@ async def auth_refresh():
         # otherwise delete no longer functioning auth (user must manually reauthorize)
         del session["auths"]["youtube"]
 
-    store_auth_keys(session["user"], session["auths"])
+    current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
     return redirect(host_url + url_for("home"))
