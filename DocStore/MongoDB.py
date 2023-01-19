@@ -90,7 +90,7 @@ class MongoDBConnection:
                 if status == 200:
                     # If the report was updated successfully, store the new report in the database.
                     new_report["_id"] = report["_id"]
-                    self.__report_collection.replace_one({"_id": report["_id"]}, report, upsert=True)
+                    self.__report_collection.replace_one({"_id": report["_id"]}, new_report, upsert=True)
                     # Return the new report in this case.
                     report = new_report
 

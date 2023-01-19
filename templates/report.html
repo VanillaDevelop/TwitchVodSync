@@ -6,11 +6,11 @@
 
 {% block content %}
 <!-- Modals -->
-<div class="modal fade" id="overrideStartModal" tabindex="-1" aria-labelledby="overrideModalLabel" aria-hidden="true">
+<div class="modal fade" id="override-start-modal" tabindex="-1" aria-labelledby="override-modal-label" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="overrideModalLabel">Confirm Override</h5>
+        <h5 class="modal-title" id="override-modal-label">Confirm Override</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -20,7 +20,7 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No thanks.</button>
-        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="overrideCurrentStarttime()">
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="overrideCurrentStartTime()">
         Yes, Override.
         </button>
       </div>
@@ -28,23 +28,23 @@
   </div>
 </div>
 
-<div class="modal fade" id="updateUnknownModal" tabindex="-1" aria-labelledby="updateUnknownLabel" aria-hidden="true">
+<div class="modal fade" id="update-unknown-modal" tabindex="-1" aria-labelledby="update-unknown-label" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="updateUnknownLabel">Confirm Update With Unknown Encounters</h5>
+        <h5 class="modal-title" id="update-unknown-label">Confirm Update With Unknown Encounters</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         Updating the log with unknown encounters will pull and display all fight and death data for encounters
-        which are not assigned an specific encounter ID. This may be helpful if a fight has not been assigned
+        which are not assigned a specific encounter ID. This may be helpful if a fight has not been assigned
         an encounter ID by FFLogs yet or if you want to sync streams according to trash pulls. However, if your name is
         Miyuki Unryuu and you do 30 S-rank hunts before the raid then this will spam the log and kill the API rate so
         please act responsibly thank you.
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No thanks.</button>
-        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="updateLogWithUnknown()">
+        <button type="button" class="btn btn-danger" data-bs-dismiss="modal" onclick="updateLogWithUnknownIDs()">
         Update with Unknown
         </button>
       </div>
@@ -52,15 +52,17 @@
   </div>
 </div>
 
-<div class="modal fade" id="importStreamModal" tabindex="-1" aria-labelledby="importStreamLabel" aria-hidden="true">
+<div class="modal fade" id="import-stream-modal" tabindex="-1" aria-labelledby="import-stream-label" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="importStreamLabel">Import / Export Stream List</h5>
+        <h5 class="modal-title" id="import-stream-label">Import / Export Stream List</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <textarea id="import-streams" class="form-control" rows="3" placeholder="Use the export streams button to put data here, or paste an existing string."></textarea>
+        <label for="import-streams" class="form-label">Import String</label>
+        <textarea id="import-streams" class="form-control" rows="3"
+            placeholder="Use the export streams button to put data here, or paste an existing string."></textarea>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -77,16 +79,17 @@
 
 <div class="container mt-5">
     <h3>Report Info</h3>
-    <h5><strong>Report:</strong> {{ title }}</h5>
-    <p>This report runs from <strong>{{ start_time }}</strong> until <strong>{{ end_time }}</strong>.<br />
-    <span id="pullno"></span><br/>
-    <span id="lastupdate"></span>
-    <p/>
+    <h5><strong>Report Name:</strong> {{ title }}</h5>
+    <p>
+        This report runs from <strong id="report-start"></strong> until <strong id="report-end"></strong>.<br />
+        <span id="pull-no"></span><br/>
+        <span id="last-updated"></span>
+    </p>
     <button class="btn btn-primary me-2" onclick="updateLog()">Update Log</button>
-    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#updateUnknownModal">
+    <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#update-unknown-modal">
         Update Log With Unknown Encounters
     </button>
-    <button type="button" class="btn btn-danger btn-stream-control" data-bs-toggle="modal" data-bs-target="#importStreamModal">
+    <button type="button" class="btn btn-danger btn-stream-control" data-bs-toggle="modal" data-bs-target="#import-stream-modal">
         Import Stream List
     </button>
     <p>
@@ -100,19 +103,19 @@
     <h3>Stream Overview</h3>
     <div class="row">
         <div class="col-md-6 col-12">
-            <form id=twitchvod_form" onsubmit="return false;">
+            <form id="twitchvod-form" onsubmit="return false;">
                 <div class="mb-3">
-                    <label class="form-label">Add Twitch VOD or Stream</label>
-                    <input type="text" id="twitch_vod" placeholder="Twitch Video ID" class="form-control"/>
+                    <label class="form-label" for="twitch-vod">Add Twitch VOD or Stream</label>
+                    <input type="text" id="twitch-vod" placeholder="Twitch Video ID" class="form-control"/>
                 </div>
                 <button class="btn btn-primary" onclick="submitTwitchVod()">Add Twitch Video</button>
             </form>
         </div>
         <div class="col-md-6 col">
-            <form id=ytvod_form" onsubmit="return false;">
+            <form id="youtube-vod-form" onsubmit="return false;">
                 <div class="mb-3">
-                    <label class="form-label">Add YouTube VOD or Stream</label>
-                    <input type="text" id="youtube_vod" placeholder="YouTube Video ID" class="form-control"/>
+                    <label class="form-label" for="youtube-vod">Add YouTube VOD or Stream</label>
+                    <input type="text" id="youtube-vod" placeholder="YouTube Video ID" class="form-control"/>
                 </div>
                 <button onclick="submitYoutubeVod()" class="btn btn-primary">Add YouTube Video</button>
             </form>
@@ -120,37 +123,36 @@
     </div>
 
     <h3 class="mt-4">Stream List</h3>
-    <div id="streams" class="row">
-        <p>Loaded VODs will appear here.</p>
+    <div id="stream-selector" class="row">
+        <p id="stream-select-placeholder">Loaded VODs will appear here.</p>
     </div>
 
     <h3 class="mt-4">Stream View</h3>
     <div class="row">
-        <div id="main_stream" class="col-8">
-            <p id="main-stream-warning">The main selected stream will appear here.</p>
+        <div id="stream-view" class="col-8">
+            <p id="main-stream-placeholder">The main selected stream will appear here.</p>
         </div>
-        <div id="streamcontrol" class="col-4 card p-3">
+        <div id="stream-control" class="col-4 card p-3">
                 <h4>Stream Control</h4>
-                <p>
-                    <h6 class="card-title" id="active-fightid"></h6>
+                <div class="my-2">
+                    <h6 class="card-title" id="active-fight-id">No Fight Selected</h6>
                     <p class="card-text">
-                        <strong id="active-fightname"></strong></br>
-                        <span id="active-start"></span> to <span id="active-end"></span> <span id="active-pulltime"></span><br />
-                        <strong>Duration: </strong><span id="active-duration"></span>
-
+                        <strong id="active-fight-name">Select a fight below to populate this window.</strong><br />
+                        <span id="active-start">00:00:00</span> to <span id="active-end"></span><span id="active-pull-time">00:00:00</span><br />
+                        <strong>Duration: </strong><span id="active-duration">00:00</span>
                     </p>
-                </p>
+                </div>
                 <div class="d-flex">
-                    <button id="active-startbtn" class="btn btn-primary me-2 btn-stream-control">Jump to Start</button>
-                    <button id="active-endbtn" class="btn btn-primary me-2 btn-stream-control">Jump to End</button>
+                    <button id="active-start-btn" class="btn btn-primary me-2 btn-stream-control">Jump to Start</button>
+                    <button id="active-end-btn" class="btn btn-primary me-2 btn-stream-control">Jump to End</button>
                 </div>
                 <div class="d-flex mt-2">
                     <button class="btn btn-primary me-2 btn-stream-control" onclick="storeCustom()">Store Custom Offset</button>
                     <button class="btn btn-primary me-2 btn-stream-control" onclick="loadCustom()">Jump to Custom</button>
                 </div>
                 <div class="d-flex mt-2">
-                    <input id="customtimestamp" class="form-control input-custom-timestamp me-2" type="number" />
-                    <button type="button" class="btn btn-danger btn-stream-control" data-bs-toggle="modal" data-bs-target="#overrideStartModal">
+                    <input aria-label="Custom Offset" id="custom-timestamp" class="form-control input-custom-timestamp me-2" type="number" />
+                    <button type="button" class="btn btn-danger btn-stream-control" data-bs-toggle="modal" data-bs-target="#override-start-modal">
                     Override Pull Start
                     </button>
                 </div>
@@ -158,13 +160,12 @@
                 <h5 class="mt-3">Pull-Specific Events</h5>
                 <small>Deaths up to 10 seconds before the recorded wipe time are discarded.</small>
                 <div id="deaths" class="mt-3">
-            </div>
+                </div>
         </div>
     </div>
 
     <h3 class="mt-4">Report Overview</h3>
-        <div id="fights" class="row">
-        </div>
+    <div id="fights" class="row">
     </div>
 </div>
 {% endblock %}
@@ -179,329 +180,213 @@
     dayjs.extend(window.dayjs_plugin_relativeTime)
     dayjs.extend(window.dayjs_plugin_duration)
 
-    let videos = {}
-    let current_player = null
-    let current_start = null
-    let current_pull_start = null
-    let current_video_id = null
-    let encounternames = null
-    let pulldata = null
-    const start_epoch = parseFloat({{ start_epoch }})
+    let streams = {}
+    let active_stream_id = null
+    let current_pull_start_epoch = 0
+    let report = null
 
-    function onYouTubeIframeAPIReady() {}
-
-    function loadLog(json_data)
+    ///////////MAIN FUNCTIONS///////////
+    //Called when a pull element is clicked, make this pull the active pull.
+    function makePullActive(id)
     {
-        encounternames = json_data["encounternames"]
-        pulldata = json_data
-        updateFights(json_data["fights"])
-        updateLastUpdatedTimer()
-    }
-
-    function updateLastUpdatedTimer()
-    {
-        if(pulldata && "loaded_at" in pulldata)
-        {
-            $("#lastupdate").html(`Last updated ${dayjs(pulldata["loaded_at"] * 1000).fromNow()} at ${dayjs(pulldata["loaded_at"] * 1000).format()}`)
-        }
-    }
-
-    function updateFights(fights)
-    {
-        let fighthtml = "";
-        for (let i=0;i<fights.length;i++)
-        {
-            fighthtml += getFightHTML(fights[i])
-        }
-        $("#fights").html(fighthtml)
-        $("#pullno").html(`It contains ${fights.length} pulls.`)
-    }
-
-    function getFightHTML(fight)
-    {
-        return `<div class="col-3 col-xl-2 p-1 pull" onclick="makeActive(${fight["id"]})">
-            <div id="pull-${fight["id"]}" class="card m-1">
-              <div class="card-body">
-                <small class="card-title">Fight ${fight["id"]}</small>
-                <p class="card-text">
-                    <strong>${encounternames[fight["encounterID"]]}</strong></br>
-                    ${fight["timestampStart"]} (${dayjs.duration(fight["endTime"] - fight["startTime"]).format('mm:ss')})
-                </p>
-              </div>
-            </div>
-        </div>`
-    }
-
-    function getDeathHTML(pull_start, death, player_data)
-    {
-        return `<a class="deathlink me-2" href="javascript:jumpTo(${death['timestamp']})"><strong class="me-1">Death (${player_data[death["targetID"]]["name"]}) </strong> at ${dayjs.duration(death["timestamp"] - pull_start).format('mm:ss')}</a></br>`
-    }
-
-    function submitTwitchVod()
-    {
-        let input_element = $("#twitch_vod")
-        let vid_id = input_element.val();
-        input_element.val("")
-        if(vid_id in videos) return;
-        addTwitchStream(vid_id)
-    }
-
-    function addTwitchStream(id, timestamp=-1)
-    {
-        $.ajax({
-            async: true,
-            type: "GET",
-            dataType: 'json',
-            url: "/ajax/twitch/vod?id=" + id,
-            contentType: "application/json; charset=utf-8",
-            success: function (msg) {
-                let d = new Date(msg['created_at']);
-                videos[msg['id']] = {
-                    'timestamp': d.getTime()/1000,
-                    'player': "twitch"
-                }
-
-                if(timestamp !== -1)
-                {
-                    videos[msg['id']]["timestamp"] = timestamp
-                }
-
-                let newNode = document.createElement('div')
-                newNode.setAttribute("id", "stream" + msg['id'])
-                newNode.setAttribute("class", "twitch col-4 col-lg-3")
-                newNode.innerHTML = getStreamHTML(msg['id'], msg['username'], d, "twitch")
-                $('#streams').append(newNode);
-            }
-         });
-    }
-
-    function submitYoutubeVod()
-    {
-        let input_element = $('#youtube_vod')
-        let vid_id = input_element.val();
-        input_element.val("")
-        if(vid_id in videos) return;
-        addYoutubeStream(vid_id)
-    }
-
-    function addYoutubeStream(id, timestamp=-1)
-    {
-        $.ajax({
-            async: true,
-            type: "GET",
-            dataType: 'json',
-            url: "/ajax/youtube/vod?id=" + id,
-            contentType: "application/json; charset=utf-8",
-            success: function (msg) {
-                let d = new Date(msg['created_at']);
-                videos[msg['id']] = {
-                    'timestamp': d.getTime()/1000,
-                    'player': "youtube"
-                }
-
-                if(timestamp !== -1)
-                {
-                    videos[msg['id']]["timestamp"] = timestamp
-                }
-
-                let newNode = document.createElement('div')
-                newNode.setAttribute("id", "stream" + msg['id'])
-                newNode.setAttribute("class", "youtube col-4 col-lg-3")
-                newNode.innerHTML = getStreamHTML(msg['id'], msg['username'], d, "youtube")
-                $('#streams').append(newNode);
-            }
-         });
-    }
-
-    function jumpTo(timestamp)
-    {
-        if(current_player == null)
-            return
-
-        let timer = (start_epoch + timestamp)/1000 - 12;
-
-        if(current_player.constructor.name === "r")
-        {
-            //twitch player. don't ask me why.
-            current_player.seek(timer - current_start)
-        }
-        else
-        {
-            current_player.seekTo(timer - current_start)
-        }
-
-        document.getElementById("main_stream").scrollIntoView();
-    }
-
-    function makeActive(id)
-    {
-        let pull = pulldata["fights"].find(element => element["id"] === id)
+        //Find pull and corresponding deaths
+        let pull = report["fights"].find(element => element["id"] === id)
         if(!pull)
             return
-        let deaths = pulldata["deaths"].filter(element => element["timestamp"] > pull["startTime"] && element["timestamp"] < pull["endTime"] - 10000)
+        let deaths = report["deaths"].filter(element => element["timestamp"] > pull["startTime"] && element["timestamp"] < pull["endTime"] - 10)
+        current_pull_start_epoch = pull["startTime"]
 
+        //Give the activated pull some visual highlight (and remove it from whatever it was on before)
         Array.from(document.querySelectorAll('.pull-active')).forEach((el) => el.classList.remove('pull-active'));
         $(`#pull-${id}`).addClass("pull-active")
 
-        $("#active-fightid").html(`Fight ${pull["id"]}`)
-        $("#active-fightname").html(encounternames[parseInt(pull["encounterID"])])
-        $("#active-start").html(pull["timestampStart"])
-        $("#active-end").html(pull["timestampEnd"])
-        $("#active-duration").html(dayjs.duration(pull["endTime"] - pull["startTime"]).format('mm:ss'))
+        //update other elements
+        $("#active-fight-id").html(`Fight ${pull["id"]}`)
+        $("#active-fight-name").html(report["encounternames"][parseInt(pull["encounterID"])])
+        $("#active-start").html(dayjs(pull["startTime"]*1000).format('HH:mm:ss'))
+        $("#active-end").html(dayjs(pull["endTime"]*1000).format('HH:mm:ss'))
+        $("#active-duration").html(dayjs.duration((pull["endTime"] - pull["startTime"])*1000).format('mm:ss'))
 
-        let deathhtml = ""
+        let death_html = ""
         for (let i=0;i<deaths.length;i++)
         {
-            deathhtml += getDeathHTML(pull["startTime"], deaths[i], pulldata["player_data"])
+            death_html += getDeathHTML(deaths[i])
         }
-        $("#deaths").html(deathhtml)
+        $("#deaths").html(death_html)
 
-        $("#active-startbtn").click(function() { jumpTo(pull["startTime"]) })
-        $("#active-endbtn").click(function() { jumpTo(pull["endTime"]) })
-        current_pull_start = pull["startTime"]
+        $("#active-start-btn").click(function() { jumpTo(pull["startTime"]-10) })
+        $("#active-end-btn").click(function() { jumpTo(pull["endTime"]-10) })
 
-        document.getElementById("streamcontrol").scrollIntoView();
+        //Scroll up to the stream control
+        document.getElementById("stream-control").scrollIntoView();
     }
 
+    //Called when a stream is clicked, make this stream the active stream.
     function makeStreamPrimary(id)
     {
-        if(!(id in videos))
+        if(!(id in streams))
             return;
 
-        $("#main-stream-warning").hide()
+        $("#main-stream-placeholder").hide()
 
         let start_seconds = 0
-        //if we already have a player
-        if(current_player)
+        //if we already had a player active
+        if(active_stream_id)
         {
-            //get the current real time of the player so we can sync it to the new player
-            start_seconds = current_player.getCurrentTime() + current_start - videos[id]['timestamp']
+            //get the current real time of the player, so we can sync it to the new player
+            start_seconds = streams[active_stream_id]["player_element"].getCurrentTime() + streams[active_stream_id]["timestamp"] - streams[id]['timestamp']
             //pause the current player
-            if(current_player.constructor.name === "r")
+            if(streams[active_stream_id]["player_element"].constructor.name === "r")
             {
-                current_player.pause()
+                //twitch pause
+                streams[active_stream_id]["player_element"].pause()
             }
             else
             {
-                current_player.pauseVideo()
+                //youtube pause
+                streams[active_stream_id]["player_element"].pauseVideo()
             }
-            //hide the current player
-            $(`#player-${current_video_id}`).hide()
+            //hide the current player element
+            $(`#player-${active_stream_id}`).hide()
         }
 
-        //set the current video id and start variables
-        current_video_id = id
-        current_start = videos[id]['timestamp']
+        //set the current video id
+        active_stream_id = id
 
         //create a new player if we don't have one yet
-        if(!("player_element" in videos[id]))
+        if(!("player_element" in streams[id]))
         {
             jQuery('<div>', {
                 id: `player-${id}`,
                 class: 'stream',
-            }).appendTo('#main_stream');
+            }).appendTo('#stream-view');
 
-            if(videos[id]['player'] === "twitch")
+            if(streams[id]['player'] === "twitch")
             {
-                    var options = {
+                    const options = {
                         width: "100%",
                         height: "100%",
                         video: id,
                         time: dayjs.duration(start_seconds*1000).format('HH[h]mm[m]ss[s]')
                     };
-                    current_player = new Twitch.Player(`player-${id}`, options);
-                    videos[id]['player_element'] = current_player
+                    streams[id]['player_element'] = new Twitch.Player(`player-${id}`, options);
             }
             else
             {
                 $(`#player-${id}`).html(`<div id="yt_embed_${id}" class="yt_embed"></div>`)
-                current_player = new YT.Player(`yt_embed_${id}`, {
-                          videoId: id,
-                          playerVars: {
-                            'playsinline': 1,
-                            'autoplay': 1,
-                            'start': Math.round(start_seconds),
-                          },
-                        });
-                videos[id]['player_element'] = current_player
+
+                streams[id]['player_element'] = new YT.Player(`yt_embed_${id}`, {
+                      videoId: id,
+                      playerVars: {
+                        'playsinline': 1,
+                        'autoplay': 1,
+                        'start': Math.round(start_seconds),
+                      },
+                    });
             }
         }
         else
         {
             //if we already have a player, just show it and play the video
             $(`#player-${id}`).show()
-            current_player = videos[id]['player_element']
-            if(videos[id]['player'] === "twitch")
+            let active_player = streams[id]['player_element']
+            if(streams[id]['player'] === "twitch")
             {
-                current_player.seek(start_seconds)
-                current_player.play()
+                active_player.seek(start_seconds)
+                active_player.play()
             }
             else
             {
-                current_player.seekTo(start_seconds)
-                current_player.playVideo()
+                active_player.seekTo(start_seconds)
+                active_player.playVideo()
             }
         }
     }
 
-    function removeStream(id)
+    //Override the presumed start time of a stream by setting a specific timestamp equal to the start of a pull.
+    function overrideCurrentStartTime()
     {
-        if(!(id in videos))
-            return;
-
-        //remove the stream element
-        $(`#stream${id}`).remove()
-        //remove the player element
-        $(`#player-${id}`).remove()
-
-        delete videos[id];
-
-    }
-
-    function getStreamHTML(id, stream_name, creation_date, platform)
-    {
-        return `
-        <div class="card my-2 stream">
-          <div class="card-body d-flex justify-content-between flex-column">
-              <div class="d-flex justify-content-between">
-                    <h5 class="card-title d-inline">${stream_name}</h5> <img src="/static/${platform}.png" width="32" height="32">
-              </div>
-              <p>VOD created at ${creation_date}</p>
-            <button class="btn btn-primary mb-1" onClick="makeStreamPrimary('${id}')">Make Primary</button>
-            <button class="btn btn-danger" onClick="removeStream('${id}')">Remove Stream</button>
-          </div>
-        </div>`
-    }
-
-    function overrideCurrentStarttime()
-    {
-        if(current_player && current_video_id in videos)
+        if(active_stream_id)
         {
-            let expected = (start_epoch + current_pull_start)/1000
-            let real = current_start + current_player.getCurrentTime()
-
-            current_start = current_start + (expected - real)
-            videos[current_video_id]["timestamp"] = current_start
+            let real = streams[active_stream_id]["timestamp"] + streams[active_stream_id]["player_element"].getCurrentTime()
+            //Realign the stream start epoch based on the difference between expected and real position of the pull start
+            streams[active_stream_id]["timestamp"] = streams[active_stream_id]["timestamp"] + (current_pull_start_epoch - real)
         }
     }
 
+    //Fill the text area for importing/exporting a stream list with the current data.
+    function setStreamListImportString()
+    {
+        let videoinfo = {}
+        for (const [key, value] of Object.entries(streams))
+        {
+            videoinfo[key] = {
+                "timestamp": value["timestamp"],
+                "player": value["player"]
+            }
+        }
+        $("#import-streams").val(JSON.stringify(videoinfo))
+    }
+
+    //Use the data in the text area for importing/exporting a stream list to populate the stream list.
+    function importStreamList()
+    {
+        let video_list = JSON.parse($("#import-streams").val())
+        for (const [key, value] of Object.entries(video_list))
+        {
+            if(!(key in streams))
+            {
+                if(value["player"] === "youtube")
+                {
+                    addYoutubeStream(key, value["timestamp"])
+                }
+                else if(value["player"] === "twitch")
+                {
+                    addTwitchStream(key, value["timestamp"])
+                }
+            }
+        }
+    }
+
+    ////////UI ELEMENT FUNCTIONS////////
+    //Submits the current input of the twitch stream input box as a stream.
+    function submitTwitchVod()
+    {
+        let input_element = $("#twitch-vod")
+        let vid_id = input_element.val();
+        input_element.val("")
+        if(vid_id in streams) return;
+        addTwitchStream(vid_id)
+    }
+
+    //Submits the current input of the YouTube stream input box as a stream.
+    function submitYoutubeVod()
+    {
+        let input_element = $('#youtube-vod')
+        let vid_id = input_element.val();
+        input_element.val("")
+        if(vid_id in streams) return;
+        addYoutubeStream(vid_id)
+    }
+
+    //Stores the offset from the current active pull to the current time in the video in the input box.
     function storeCustom()
     {
-        if(current_player && current_video_id in videos)
+        if(active_stream_id)
         {
-            let pullstart = (start_epoch + current_pull_start)/1000
-            let current = current_start + current_player.getCurrentTime()
-
-            $("#customtimestamp").val(Math.round(current-pullstart))
+            let current = streams[active_stream_id]["timestamp"] + streams[active_stream_id]["player_element"].getCurrentTime()
+            $("#custom-timestamp").val(Math.round(current-current_pull_start_epoch))
         }
     }
 
+    //Sets the current stream time to the offset in the input box.
     function loadCustom()
     {
-        let offset = parseInt($("#customtimestamp").val())
-        jumpTo(current_pull_start + (offset+12)*1000)
+        let offset = parseInt($("#custom-timestamp").val())
+        jumpTo(current_pull_start_epoch + offset)
     }
 
+    //Updates the log via AJAX.
     function updateLog()
     {
         $.ajax({
@@ -516,7 +401,8 @@
         })
     }
 
-    function updateLogWithUnknown()
+    //Update teh log via AJAX and include encounters with ID 0.
+    function updateLogWithUnknownIDs()
     {
         $.ajax({
             async: true,
@@ -530,33 +416,184 @@
         })
     }
 
-    function setStreamListImportString()
+    //Removes a stream from the stream view and selector overview.
+    function removeStream(id)
     {
-        $("#import-streams").val(JSON.stringify(videos))
+        if(!(id in streams))
+            return;
+
+        //remove the stream element.
+        $(`#stream${id}`).remove()
+        //remove the player element.
+        $(`#player-${id}`).remove()
+        //Remove residue data.
+        delete streams[id];
     }
 
-    function importStreamList()
+    ////////AUXILIARY FUNCTIONS////////
+    //Required by the YouTube embed API, but not used.
+    function onYouTubeIframeAPIReady() {}
+
+    //Defines HTML for a stream selector element
+    function GetStreamSelectorHTML(id, stream_name, platform)
     {
-        let videolist = JSON.parse($("#import-streams").val())
-        for (const [key, value] of Object.entries(videolist))
+        return `
+        <div class="card stream">
+          <div class="card-body d-flex justify-content-between flex-column">
+              <div class="d-flex justify-content-between">
+                    <h5 class="card-title d-inline">${stream_name}</h5> <img src="/static/${platform}.png" width="32"
+                        height="32" alt="${platform}">
+              </div>
+            <button class="btn btn-primary mb-1" onClick="makeStreamPrimary('${id}')">Make Primary</button>
+            <button class="btn btn-danger" onClick="removeStream('${id}')">Remove Stream</button>
+          </div>
+        </div>`
+    }
+
+    //Defines HTML for a pull element
+    function getFightHTML(fight)
+    {
+        return `<div class="col-3 col-xl-2 p-1 pull" onclick="makePullActive(${fight["id"]})">
+            <div id="pull-${fight["id"]}" class="card m-1">
+              <div class="card-body">
+                <small class="card-title">Fight ${fight["id"]}</small>
+                <p class="card-text">
+                    <strong>${report["encounternames"][fight["encounterID"]]}</strong></br>
+                    ${dayjs(fight["startTime"]*1000).format('HH:mm:ss')} <strong>(${dayjs.duration((fight["endTime"] - fight["startTime"])*1000).format('mm:ss')})</strong>
+                </p>
+              </div>
+            </div>
+        </div>`
+    }
+
+    //Defines HTML for a death display
+    function getDeathHTML(death)
+    {
+        return `<a class="deathlink me-2" href="javascript:jumpTo(${death['timestamp']-5})"><strong class="me-1">
+                    Death (${report["player_data"][death["targetID"]]["name"]}) </strong> at
+                    ${dayjs.duration((death["timestamp"] - current_pull_start_epoch)*1000).format('mm:ss')}
+                </a></br>`
+    }
+
+
+    //Load json data into the page
+    function loadLog(json_data)
+    {
+        report = json_data
+        updateViews(json_data["fights"])
+        updateLastUpdatedTimer()
+    }
+
+    //Function that is periodically called and when the log is updated, to update the display element which shows the
+    //duration since the last log update.
+    function updateLastUpdatedTimer()
+    {
+        if(report && "loaded_at" in report)
         {
-            if(!(key in videos))
-            {
-                if(value["player"] === "youtube")
-                {
-                    addYoutubeStream(key, value["timestamp"])
-                }
-                else if(value["player"] === "twitch")
-                {
-                    addTwitchStream(key, value["timestamp"])
-                }
-            }
+            $("#last-updated").html(`Last updated ${dayjs(report["loaded_at"] * 1000).fromNow()} on ${dayjs(report["loaded_at"] * 1000).format('DD.MM.YYYY HH:mm:ss')}`)
         }
     }
-    </script>
-    <script>
-        loadLog(JSON.parse("{{ data|safe }}"))
 
+    //Jumps to a given epoch in seconds on the current stream.
+    function jumpTo(timestamp)
+    {
+        if(active_stream_id == null)
+            return
+
+        if(streams[active_stream_id]["player_element"].constructor.name === "r")
+        {
+            //twitch player.
+            streams[active_stream_id]["player_element"].seek(timestamp - streams[active_stream_id]["timestamp"])
+        }
+        else
+        {
+            //YouTube player
+            streams[active_stream_id]["player_element"].seekTo(timestamp - streams[active_stream_id]["timestamp"])
+        }
+
+        //Scroll up to the stream view
+        document.getElementById("stream-view").scrollIntoView();
+    }
+
+    //Update UI elements to reflect an updated log.
+    function updateViews()
+    {
+        let fight_html = "";
+        for (let i=0;i<report["fights"].length;i++)
+        {
+            fight_html += getFightHTML(report["fights"][i])
+        }
+        $("#fights").html(fight_html)
+        $("#pull-no").html(`It contains ${report["fights"].length} pulls.`)
+        $("#report-start").html(dayjs(report["startTime"]*1000).format('DD.MM.YYYY HH:mm:ss'))
+        $("#report-end").html(dayjs(report["endTime"]*1000).format('DD.MM.YYYY HH:mm:ss'))
+    }
+
+    //Adds a twitch stream to the stream selector list
+    function addTwitchStream(id, timestamp=-1)
+    {
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: 'json',
+            url: "/ajax/twitch/vod?id=" + id,
+            contentType: "application/json; charset=utf-8",
+            success: function (msg) {
+                let d = new Date(msg['created_at']);
+                streams[msg['id']] = {
+                    'timestamp': d.getTime()/1000,
+                    'player': "twitch"
+                }
+
+                //A custom defined timestamp takes precedence over the timestamp from the API.
+                //Such a custom timestamp is used when a stream is added to the selector list via the import function.
+                if(timestamp !== -1)
+                    streams[msg['id']]["timestamp"] = timestamp
+
+                //Add the stream to the selector list.
+                let newNode = document.createElement('div')
+                newNode.setAttribute("id", "stream" + msg['id'])
+                newNode.setAttribute("class", "twitch col-4 col-lg-3 my-2")
+                newNode.innerHTML = GetStreamSelectorHTML(msg['id'], msg['username'], "twitch")
+                $('#stream-selector').append(newNode);
+            }
+         });
+    }
+
+    //Adds a YouTube stream to the stream selector list
+    function addYoutubeStream(id, timestamp=-1)
+    {
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: 'json',
+            url: "/ajax/youtube/vod?id=" + id,
+            contentType: "application/json; charset=utf-8",
+            success: function (msg) {
+                let d = new Date(msg['created_at']);
+                streams[msg['id']] = {
+                    'timestamp': d.getTime()/1000,
+                    'player': "youtube"
+                }
+
+                //A custom defined timestamp takes precedence over the timestamp from the API.
+                //Such a custom timestamp is used when a stream is added to the selector list via the import function.
+                if(timestamp !== -1)
+                    streams[msg['id']]["timestamp"] = timestamp
+
+                let newNode = document.createElement('div')
+                newNode.setAttribute("id", "stream" + msg['id'])
+                newNode.setAttribute("class", "youtube col-4 col-lg-3 my-2")
+                newNode.innerHTML = GetStreamSelectorHTML(msg['id'], msg['username'], "youtube")
+                $('#stream-selector').append(newNode);
+            }
+         });
+    }
+    </script>
+
+    <script>
+        //To initialize, we load json that we pass from jinja and set up the recurring function for updating the timer.
+        loadLog(JSON.parse("{{ data|safe }}"))
         setInterval(function() {
           updateLastUpdatedTimer()
         }, 30000);

@@ -7,7 +7,6 @@ from flask_cors import cross_origin
 from flask_session import Session
 from google.auth.transport import requests as google_auth_request
 from google.oauth2 import id_token
-import FFLogs.DateUtil as DateUtil
 import FFLogs.auth
 from DocStore import MongoDB
 from DocStore.MongoDB import MongoDBConnection
@@ -141,9 +140,6 @@ def report():
         return redirect(url_for("home"))
 
     return render_template('report.html', data=json_util.dumps(data).replace("\"", "\\\""),
-                           start_time=DateUtil.timestamp_to_string(data['startTime']),
-                           end_time=DateUtil.timestamp_to_string(data['endTime']),
-                           start_epoch=data['startTime'],
                            title=data['title'],
                            code=request.args.get("code"),
                            auths=session["auths"],
