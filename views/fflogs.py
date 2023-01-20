@@ -1,18 +1,16 @@
-import os
 import uuid
 import pkce
-from dotenv import load_dotenv
 from flask import redirect, url_for, session, request, Blueprint, current_app
 import FFLogs.API as FFLogsAPI
-from FFLogs import auth
-
-load_dotenv()
 fflogs_routes = Blueprint('fflogs', __name__)
-host_url = os.getenv("HOST_URL")
 
 
 @fflogs_routes.route('/auth/fflogs/challenge', methods=['POST'])
 def auth_challenge():
+    """
+    When button to start fflogs auth flow is clicked, generate state and call fflogs auth url with state.
+    :return: A redirect to the fflogs auth url.
+    """
     # generate PKCE challenge pair
     verifier, challenge = pkce.generate_pkce_pair()
     state = str(uuid.uuid4())
@@ -21,36 +19,41 @@ def auth_challenge():
     session['fflogs_verifier'] = verifier
 
     # redirect user to FFLogs auth page with challenge
-    url = f"""https://www.fflogs.com/oauth/authorize?""" \
-          f"""client_id={os.getenv("FFLOGS_CLIENT_ID")}""" \
-          f"""&code_challenge={challenge}""" \
-          f"""&code_challenge_method=S256""" \
-          f"""&state={state}""" \
-          f"""&redirect_uri={host_url + url_for("fflogs.auth_verify")}""" \
-          f"""&response_type=code"""
+    url = current_app.config["FFLOGS_CLIENT"].get_auth_url(challenge, state,
+                                                           current_app.config["HOST_URL"] + url_for(
+                                                               "fflogs.auth_verify"))
     return redirect(url)
 
 
 @fflogs_routes.route('/auth/fflogs/verify')
 def auth_verify():
+    """
+    When redirected from FFLogs, verify state and code, then exchange code for token.
+    :return: A redirect to the home page.
+    """
+    # Make sure the user is logged in and has an auths object.
     if "user" not in session or "auths" not in session:
-        return redirect(host_url + url_for("index"))
+        return redirect(current_app.config["HOST_URL"] + url_for("index"))
 
+    # Check to see if we received state and verifier in the request args.
     if "fflogs_state" not in session or "fflogs_verifier" not in session:
-        return redirect(host_url + url_for("index"))
+        return redirect(current_app.config["HOST_URL"] + url_for("index"))
 
-    state = request.args.get('state')
+    # Delete state and verifier after storing them, and make sure the state matches.
     code = request.args.get('code')
     verifier = session["fflogs_verifier"]
-    state_matches = session["fflogs_state"] == state
+    state_matches = session["fflogs_state"] == request.args.get('state')
     del session["fflogs_state"]
     del session["fflogs_verifier"]
 
+    # Make sure we have a matching state and a request code.
     if not code or not state_matches:
-        return redirect(host_url + url_for("home"))
+        return redirect(current_app.config["HOST_URL"] + url_for("home"))
 
     # request token with verifier and provided auth code
-    status_code, data = auth.try_obtain_token(code, verifier, host_url + url_for("fflogs.auth_verify"))
+    status_code, data = current_app["FFLOGS_CLIENT"].try_obtain_token(code, verifier,
+                                                                      current_app.config["HOST_URL"] + url_for(
+                                                                          "fflogs.auth_verify"))
 
     # if successful, store access token for user and get his username and uid, then return to home
     if status_code == 200:
@@ -67,40 +70,12 @@ def auth_verify():
     return redirect(url_for('home'))
 
 
-@fflogs_routes.route('/auth/fflogs/refresh')
-async def auth_refresh():
-    # don't allow users to arbitrarily request token refreshes
-    if "fflogs_refresh" not in session:
-        return redirect(host_url + url_for("home"))
-    del session["fflogs_refresh"]
-
-    if "user" not in session or "auths" not in session or "fflogs" not in session["auths"]:
-        return redirect(host_url + url_for("home"))
-
-    status_token, data = auth.try_refresh_fflogs_token(refresh_token=session["auths"]["fflogs"]["refresh_token"])
-    # store fflogs token and refresh token user auths if successful
-    if status_token == 200:
-        userdata = FFLogsAPI.get_username(data[0])
-        if userdata:
-            session["auths"]["fflogs"] = {
-                "token": data[0],
-                "username": userdata["name"],
-                "uid": userdata["id"],
-                "refresh_token": data[1]
-            }
-        else:
-            # otherwise delete no longer functioning auth (user must manually reauthorize)
-            del session["auths"]["fflogs"]
-    else:
-        # same here
-        del session["auths"]["fflogs"]
-
-    current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
-    return redirect(host_url + url_for("home"))
-
-
 @fflogs_routes.route('/auth/fflogs/signout', methods=['POST'])
 def auth_signout():
+    """
+    When button to sign out of fflogs is clicked, remove fflogs auth from user's auths object.
+    :return: A redirect to the home page.
+    """
     # signout from FFLogs session => delete the data stored by the FFLogs auth flow, then return home
     if "user" in session and "auths" in session and "fflogs" in session["auths"]:
         del session["auths"]["fflogs"]

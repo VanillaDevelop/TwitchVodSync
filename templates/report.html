@@ -469,7 +469,7 @@
     //Defines HTML for a death display
     function getDeathHTML(death)
     {
-        return `<a class="deathlink me-2" href="javascript:jumpTo(${death['timestamp']-5})"><strong class="me-1">
+        return `<a class="death-link me-2" href="javascript:jumpTo(${death['timestamp']-5})"><strong class="me-1">
                     Death (${report["player_data"][death["targetID"]]["name"]}) </strong> at
                     ${dayjs.duration((death["timestamp"] - current_pull_start_epoch)*1000).format('mm:ss')}
                 </a></br>`

@@ -1,19 +1,8 @@
-import os
-
 import requests
 from bson import json_util
-from dotenv import load_dotenv
 from flask import session, request, Blueprint, current_app
 
-import FFLogs.auth
-import Twitch.auth
-import YouTube.auth
-from DocStore.MongoDB import MongoDBConnection
-
-load_dotenv()
 ajax_routes = Blueprint('ajax', __name__)
-
-twitch_client_id = os.getenv("TWITCH_ID")
 
 
 # method called via ajax to get info on a Twitch VOD
@@ -29,11 +18,11 @@ def ajax_vod_twitch():
     else:
         r = requests.get(f"https://api.twitch.tv/helix/videos?id={video_id}",
                          headers={"Authorization": f"Bearer {session['auths']['twitch']['token']}",
-                                  "Client-Id": twitch_client_id})
+                                  "Client-Id": current_app.config["TWITCH_CLIENT"].get_client_id()})
 
         if r.status_code == 401:
             # try to refresh the token once if we get 401 (maybe expired)
-            refresh_status, refresh_data = Twitch.auth.try_refresh_twitch_token(
+            refresh_status, refresh_data = current_app.config["TWITCH_CLIENT"].try_refresh_twitch_token(
                 refresh_token=session['auths']['twitch']['refresh_token'])
             if refresh_status != 200:
                 # jank auth, reset and redirect
@@ -46,7 +35,7 @@ def ajax_vod_twitch():
                 current_app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
                 r = requests.get(f"https://api.twitch.tv/helix/videos?id={video_id}",
                                  headers={"Authorization": f"Bearer {session['auths']['twitch']['token']}",
-                                          "Client-Id": twitch_client_id})
+                                          "Client-Id": current_app.config["TWITCH_CLIENT"].get_client_id()})
 
         if r.status_code == 200:
             if len(r.json()['data']) == 0:
@@ -78,7 +67,7 @@ def ajax_vod_youtube():
 
         if r.status_code == 401:
             # try to refresh the token once if we get 401 (maybe expired)
-            refresh_status, refresh_data = YouTube.auth.try_refresh_youtube_token(
+            refresh_status, refresh_data = current_app.config["YOUTUBE_CLIENT"].try_refresh_youtube_token(
                 refresh_token=session['auths']['youtube']['refresh_token'])
             if refresh_status != 200:
                 # jank auth, reset and redirect
@@ -126,7 +115,7 @@ def ajax_fflogs_report():
                                                                                   "unknown") == "True")
         if status == 401:
             # try to refresh the token once if we get 401 (maybe expired)
-            refresh_status, refresh_data = FFLogs.auth.try_refresh_fflogs_token(
+            refresh_status, refresh_data = current_app.config["FFLOGS_CLIENT"].try_refresh_fflogs_token(
                 refresh_token=session['auths']['fflogs']['refresh_token'])
             if refresh_status != 200:
                 # jank auth, reset and redirect

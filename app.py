@@ -1,15 +1,18 @@
 import base64
 import os
-from dotenv import load_dotenv
+
 from bson import json_util
+from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
 from flask_cors import cross_origin
 from flask_session import Session
 from google.auth.transport import requests as google_auth_request
 from google.oauth2 import id_token
+
 import FFLogs.auth
 from DocStore import MongoDB
-from DocStore.MongoDB import MongoDBConnection
+from Twitch.auth import TwitchAuth
+from YouTube.auth import YouTubeAuth
 from views.ajax import ajax_routes
 from views.fflogs import fflogs_routes
 from views.twitch import twitch_routes
@@ -33,6 +36,20 @@ app.config["MONGO_CLIENT"] = MongoDB.MongoDBConnection(
     int(os.getenv("UPDATE_CADENCE"))
 )
 
+app.config["YOUTUBE_CLIENT"] = YouTubeAuth(
+    os.getenv("YOUTUBE_ID"),
+    os.getenv("YOUTUBE_SECRET")
+)
+
+app.config["TWITCH_CLIENT"] = TwitchAuth(
+    os.getenv("TWITCH_ID"),
+    os.getenv("TWITCH_SECRET")
+)
+
+app.config["FFLOGS_CLIENT"] = FFLogs.auth.FFLogsAuth(
+    os.getenv("FFLOGS_CLIENT_ID"),
+)
+
 # store other config variables
 app.config["HOST_URL"] = os.getenv("HOST_URL")
 google_id = os.getenv("GOOGLE_CLIENT_ID")
@@ -40,6 +57,8 @@ google_id = os.getenv("GOOGLE_CLIENT_ID")
 app.config["SESSION_TYPE"] = "mongodb"
 app.config["SESSION_MONGODB"] = app.config["MONGO_CLIENT"].get_client()
 app.config["SESSION_MONGODB_DB"] = "VodSync"
+
+# setup session
 Session(app)
 
 # register routes
@@ -48,9 +67,6 @@ with app.app_context():
     app.register_blueprint(youtube_routes)
     app.register_blueprint(twitch_routes)
     app.register_blueprint(ajax_routes)
-
-# load required handlers into local variables
-mongo_client: MongoDBConnection = app.config["MONGO_CLIENT"]
 
 
 @app.route('/')
@@ -90,7 +106,7 @@ def home():
         return redirect(url_for("index"))
 
     if "auths" not in session:
-        session["auths"] = mongo_client.get_auth_keys(session["user"])
+        session["auths"] = app.config["MONGO_CLIENT"].get_auth_keys(session["user"])
 
     return render_template('home.html', username=session["user"], auths=session["auths"])
 
@@ -117,23 +133,24 @@ def report():
         return redirect(url_for("home"))
 
     # get all fights in report for given code
-    report_status, data = mongo_client.find_or_load_report(request.args.get("code"),
-                                                           session["auths"]["fflogs"]["token"])
+    report_status, data = app.config["MONGO_CLIENT"].find_or_load_report(request.args.get("code"),
+                                                                         session["auths"]["fflogs"]["token"])
+    # TODO we can turn this into a utils function to arbitrarily double-try a function with a re-auth attempt inbetween.
     if report_status == 401:
-        refresh_status, refresh_data = FFLogs.auth.try_refresh_fflogs_token(
+        refresh_status, refresh_data = app.config["FFLOGS_CLIENT"].try_refresh_fflogs_token(
             refresh_token=session["auths"]["fflogs"]["refresh_token"])
         if refresh_status != 200:
             # jank auth, reset and redirect
             del session["auths"]["fflogs"]
-            mongo_client.store_auth_keys(session["user"], session["auths"])
+            app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
             return redirect(url_for("home"))
         else:
             session["auths"]["fflogs"]["token"] = refresh_data[0]
             session["auths"]["fflogs"]["refresh_token"] = refresh_data[1]
-            mongo_client.store_auth_keys(session["user"], session["auths"])
+            app.config["MONGO_CLIENT"].store_auth_keys(session["user"], session["auths"])
         # re-query
-        report_status, data = mongo_client.find_or_load_report(request.args.get("code"),
-                                                               session["auths"]["fflogs"]["token"])
+        report_status, data = app.config["MONGO_CLIENT"].find_or_load_report(request.args.get("code"),
+                                                                             session["auths"]["fflogs"]["token"])
 
     # simply redirect home if we get an error after a potential 401 retry
     if report_status != 200:
