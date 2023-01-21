@@ -33,11 +33,11 @@ def auth_verify():
     """
     # Make sure the user is logged in and has an auths object.
     if "user" not in session or "auths" not in session:
-        return redirect(current_app.config["HOST_URL"] + url_for("index"))
+        return redirect(current_app.config["HOST_URL"] + url_for("auth.index"))
 
     # Check to see if we received state and verifier in the request args.
     if "fflogs_state" not in session or "fflogs_verifier" not in session:
-        return redirect(current_app.config["HOST_URL"] + url_for("index"))
+        return redirect(current_app.config["HOST_URL"] + url_for("auth.index"))
 
     # Delete state and verifier after storing them, and make sure the state matches.
     code = request.args.get('code')

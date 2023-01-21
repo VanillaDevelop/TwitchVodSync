@@ -4,16 +4,14 @@ import os
 from bson import json_util
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, session, request
-from flask_cors import cross_origin
 from flask_session import Session
-from google.auth.transport import requests as google_auth_request
-from google.oauth2 import id_token
 
 import FFLogs.auth
 from DocStore import MongoDB
 from Twitch.auth import TwitchAuth
 from YouTube.auth import YouTubeAuth
 from views.ajax import ajax_routes
+from views.auth import auth_routes
 from views.fflogs import fflogs_routes
 from views.twitch import twitch_routes
 from views.youtube import youtube_routes
@@ -52,8 +50,7 @@ app.config["FFLOGS_CLIENT"] = FFLogs.auth.FFLogsAuth(
 
 # store other config variables
 app.config["HOST_URL"] = os.getenv("HOST_URL")
-google_id = os.getenv("GOOGLE_CLIENT_ID")
-
+app.config["GOOGLE_ID"] = os.getenv("GOOGLE_CLIENT_ID")
 app.config["SESSION_TYPE"] = "mongodb"
 app.config["SESSION_MONGODB"] = app.config["MONGO_CLIENT"].get_client()
 app.config["SESSION_MONGODB_DB"] = "VodSync"
@@ -67,43 +64,17 @@ with app.app_context():
     app.register_blueprint(youtube_routes)
     app.register_blueprint(twitch_routes)
     app.register_blueprint(ajax_routes)
-
-
-@app.route('/')
-@cross_origin(supports_credentials=True, origins="*")
-def index():
-    if "user" in session:
-        return redirect(app.config["HOST_URL"] + url_for("home"))
-    else:
-        return render_template('index.html', host_url=app.config["HOST_URL"] + url_for("login"),
-                               google_client_id=google_id)
-
-
-@app.route('/login', methods=['POST'])
-def login():
-    # try to get the user's email to authorize them
-    try:
-        id_info = id_token.verify_oauth2_token(request.form["credential"], google_auth_request.Request(), google_id)
-        if "email" in id_info:
-            session["user"] = id_info["email"]
-            return redirect(app.config["HOST_URL"] + url_for("home"))
-        return redirect(app.config["HOST_URL"] + url_for("index"))
-    except ValueError:
-        return redirect(app.config["HOST_URL"] + url_for("index"))
-
-
-@app.route('/logout', methods=['POST'])
-def logout():
-    # delete login cookie
-    if "user" in session and request.method == "POST":
-        session.clear()
-    return redirect(url_for('index'))
+    app.register_blueprint(auth_routes)
 
 
 @app.route('/home')
 def home():
+    """
+    Home page for logged-in users.
+    :return: Home page.
+    """
     if "user" not in session:
-        return redirect(url_for("index"))
+        return redirect(url_for("auth.index"))
 
     if "auths" not in session:
         session["auths"] = app.config["MONGO_CLIENT"].get_auth_keys(session["user"])
@@ -113,16 +84,24 @@ def home():
 
 @app.route('/reports')
 def reports():
+    """
+    Page for selecting an FFLogs report.
+    :return: Reports page.
+    """
     if "user" not in session:
-        return redirect(url_for("index"))
+        return redirect(url_for("auth.index"))
 
     return render_template('reports.html', auths=session["auths"], username=session["user"])
 
 
 @app.route('/report/')
 def report():
+    """
+    Page for viewing report details.
+    :return: Report details page.
+    """
     if "user" not in session:
-        return redirect(url_for("index"))
+        return redirect(url_for("auth.index"))
 
     # check auths
     if "twitch" not in session["auths"] or "youtube" not in session["auths"] or "fflogs" not in session["auths"]:
@@ -135,6 +114,7 @@ def report():
     # get all fights in report for given code
     report_status, data = app.config["MONGO_CLIENT"].find_or_load_report(request.args.get("code"),
                                                                          session["auths"]["fflogs"]["token"])
+
     # TODO we can turn this into a utils function to arbitrarily double-try a function with a re-auth attempt inbetween.
     if report_status == 401:
         refresh_status, refresh_data = app.config["FFLOGS_CLIENT"].try_refresh_fflogs_token(

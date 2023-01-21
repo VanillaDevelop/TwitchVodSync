@@ -23,7 +23,7 @@ def auth_verify():
     """
     # Make sure the user is logged in and has an auth object.
     if "user" not in session or "auths" not in session:
-        return redirect(current_app.config["HOST_URL"] + url_for("index"))
+        return redirect(current_app.config["HOST_URL"] + url_for("auth.index"))
 
     # Check we received a code in the request args.
     code = request.args.get('code')
