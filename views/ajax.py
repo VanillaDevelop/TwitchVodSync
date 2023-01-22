@@ -11,7 +11,7 @@ def ajax_vod_twitch():
     Get info on a Twitch VOD
     :return: JSON data corresponding to the Twitch VOD if the call was successful.
     """
-    if "twitch" not in session["auths"]:
+    if "auths" not in session or "twitch" not in session["auths"]:
         return "Not authenticated with Twitch", 401
 
     video_id = request.args.get("id")
@@ -59,7 +59,7 @@ def ajax_vod_youtube():
     Get info on a YouTube VOD.
     :return: JSON data corresponding to the YouTube VOD if the call was successful.
     """
-    if "youtube" not in session["auths"]:
+    if "auths" not in session or "youtube" not in session["auths"]:
         return "Not authenticated with YouTube", 401
 
     video_id = request.args.get("id")
@@ -106,7 +106,7 @@ def ajax_fflogs_report():
     Get info on a FFLogs report.
     :return: JSON data corresponding to the FFLogs report if the call was successful.
     """
-    if "fflogs" not in session["auths"]:
+    if "auths" not in session or "fflogs" not in session["auths"]:
         return "Not authenticated with FFLogs", 401
 
     report = request.args.get("code")

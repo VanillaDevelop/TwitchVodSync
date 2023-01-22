@@ -2,6 +2,7 @@ import uuid
 import pkce
 from flask import redirect, url_for, session, request, Blueprint, current_app
 import FFLogs.API as FFLogsAPI
+
 fflogs_routes = Blueprint('fflogs', __name__)
 
 
@@ -51,9 +52,9 @@ def auth_verify():
         return redirect(current_app.config["HOST_URL"] + url_for("home"))
 
     # request token with verifier and provided auth code
-    status_code, data = current_app["FFLOGS_CLIENT"].try_obtain_token(code, verifier,
-                                                                      current_app.config["HOST_URL"] + url_for(
-                                                                          "fflogs.auth_verify"))
+    status_code, data = current_app.config["FFLOGS_CLIENT"].try_obtain_token(code, verifier,
+                                                                             current_app.config["HOST_URL"] + url_for(
+                                                                                 "fflogs.auth_verify"))
 
     # if successful, store access token for user and get his username and uid, then return to home
     if status_code == 200:

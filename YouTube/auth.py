@@ -75,8 +75,7 @@ class YouTubeAuth:
         url = f"""https://accounts.google.com/o/oauth2/auth?""" \
               f"""client_id={self.client_id}""" \
               f"""&response_type=code""" \
-              f"""&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.readonly%20https%3A%2F%2Fwww.googleapis
-              .com%2Fauth%2Fuserinfo.email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Foffline""" \
+              f"""&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fyoutube.readonly%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Foffline""" \
               f"""&access_type=offline""" \
               f"""&prompt=consent""" \
               f"""&redirect_uri={redirect_uri}"""
