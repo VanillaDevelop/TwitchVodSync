@@ -165,7 +165,24 @@
     </div>
 
     <h3 class="mt-4">Report Overview</h3>
-    <div id="fights" class="row">
+    <div>
+        <h5>Filter</h5>
+        <div class="row align-items-center mb-3">
+            <div class="col-auto">
+                <label class="col-form-label" for="duration-filter">Filter by Duration</label>
+            </div>
+            <div class="col-auto">
+                <input type="number" id="duration-filter" class="form-control col-auto" placeholder="Minimum Duration" />
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary" onclick="filterDuration()">Apply Filter</button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-danger" onclick="clearFilter()">Reset Filter</button>
+            </div>
+        </div>
+        <div id="fights" class="row">
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -430,6 +447,35 @@
         delete streams[id];
     }
 
+    //Filter pulls by the duration
+    function filterDuration()
+    {
+        let elem = $("#duration-filter").val()
+        let seconds = parseInt(elem)
+        if(seconds > 0)
+        {
+            for (const [key, value] of Object.entries(report.fights))
+            {
+                if((value.endTime - value.startTime) < seconds)
+                {
+                    $(`#enc-${value.id}`).hide()
+                }
+                else
+                {
+                    $(`#enc-${value.id}`).show()
+                }
+            }
+        }
+    }
+
+    function clearFilter()
+    {
+        for (const [key, value] of Object.entries(report.fights))
+        {
+            $(`#enc-${value.id}`).show()
+        }
+    }
+
     ////////AUXILIARY FUNCTIONS////////
     //Required by the YouTube embed API, but not used.
     function onYouTubeIframeAPIReady() {}
@@ -453,7 +499,7 @@
     //Defines HTML for a pull element
     function getFightHTML(fight)
     {
-        return `<div class="col-3 col-xl-2 p-1 pull" onclick="makePullActive(${fight["id"]})">
+        return `<div id="enc-${fight["id"]}" class="col-3 col-xl-2 p-1 pull" onclick="makePullActive(${fight["id"]})">
             <div id="pull-${fight["id"]}" class="card m-1">
               <div class="card-body">
                 <small class="card-title">Fight ${fight["id"]}</small>
